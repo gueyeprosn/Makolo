@@ -22,6 +22,8 @@ pas ici, référence-le.
 | RLS, rôles, ce qui protège quoi | `docs/SECURITY.md` |
 | Chaque règle métier et où elle est appliquée | `docs/BUSINESS-RULES.md` |
 | Prochains chantiers, dans quel ordre et pourquoi | `docs/ROADMAP.md` |
+| Ce que chaque rôle peut réellement faire aujourd'hui, route par route | `docs/USER-JOURNEYS.md` |
+| Conception détaillée d'un chantier non livré (statuts étendus, paiement) | `docs/specs/` |
 
 ## Principes fondamentaux
 

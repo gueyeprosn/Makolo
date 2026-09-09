@@ -33,6 +33,9 @@ dès la deuxième réservation qui chevauche la même période.
 
 **Débloque** : tout calcul de disponibilité correct, donc tout ce qui suit.
 
+Spécification détaillée du cycle de statut qui en découle :
+`docs/specs/BOOKING-LIFECYCLE.md`.
+
 ## 2. Encaissement d'acompte — Bloquant · Fondation
 
 **Problème réel** : aucune transaction ne passe par la plateforme. Client et
@@ -51,6 +54,9 @@ capture aucune valeur de la mise en relation qu'elle a pourtant produite.
 4. Jamais de confirmation de paiement acceptée depuis le seul frontend.
 
 **Débloque** : toute commission, donc tout modèle de revenu.
+
+Spécification détaillée du flux webhook, des vérifications obligatoires et de
+ce que le frontend n'a jamais le droit de décider : `docs/specs/PAYMENT-FLOW.md`.
 
 ## 3. Notifications WhatsApp Business — Fondation
 
