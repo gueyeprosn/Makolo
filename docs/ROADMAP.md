@@ -128,13 +128,108 @@ mêmes symptômes (litiges de livraison et de casse) :
 - photo horodatée au départ et au retour du matériel, pour arbitrer un
   désaccord sur la casse sans dépendre de la parole de l'une des parties.
 
+## 9. Messagerie asynchrone client ↔ prestataire
+
+**À distinguer du chat temps réel** (explicitement hors périmètre ci-dessous) :
+un fil de messages rattaché à une demande de réservation existante, rafraîchi
+par intervalle comme le sont déjà les notifications (`useNotifications`,
+`refetchInterval`), sans WebSocket. Cette distinction n'est pas cosmétique :
+un fil de discussion ouvert à tout visiteur est une surface de spam et
+d'abus ; rattaché à une `booking_request` réelle, il hérite de ses policies
+RLS (seuls le client et le prestataire concernés y accèdent).
+
+**Travail** : tables `conversations` (1–1 avec une `booking_request`) et
+`messages`, policies RLS symétriques à celles de `booking_requests`,
+statut lu/non lu, notification à la réception (réutilise
+`notify_booking_*` comme modèle).
+
+Ne dépend d'aucun autre chantier — buildable indépendamment de l'encaissement.
+
+## 10. Avis notés, distincts du score de fiabilité
+
+Le score de fiabilité (chantier 4) est calculé par la plateforme à partir de
+faits observables (présence, ponctualité, conformité) — il ne se manipule
+pas. Un avis noté est un texte libre écrit par un client : utile, mais sujet
+aux faux avis et aux règlements de compte, donc à traiter séparément.
+
+**Dépend de** : chantier 4 / `docs/specs/BOOKING-LIFECYCLE.md` — un avis n'a
+de sens qu'après le statut `completed`, qui n'existe pas encore.
+
+**Travail** : table `reviews` (note 1–5, commentaire, `booking_id` unique
+pour empêcher plusieurs avis sur la même réservation), policy RLS limitant
+l'écriture au client dont la réservation est `completed`, modération admin
+en cas de signalement (chantier 11).
+
+## 11. Signalement et litiges
+
+**Dépend de** : chantiers 9 et 10 — un signalement porte sur un message, un
+avis ou une annonce ; sans eux, rien à signaler.
+
+**Travail** : table `reports` (cible polymorphe : annonce, avis ou message,
+motif, statut), file de modération admin, trace d'audit des décisions.
+
+## 12. Rôle `support`
+
+Demandé par le master prompt UX/UI (RBAC à 4 rôles), mais **prématuré tant
+que rien n'a besoin de lui** : les chantiers 9, 10 et 11 sont ce qui donnerait
+un contenu réel à ce rôle (traiter les signalements, répondre aux
+utilisateurs). Créer le rôle avant ces chantiers produirait une permission
+vide de tout pouvoir — voir la règle anti-sur-ingénierie de `CLAUDE.md`.
+
+**Dépend de** : chantier 11 au minimum.
+
+## 13. Vertical « Services », distinct des équipements
+
+Un DJ, un traiteur ou un photographe ne se décrivent pas comme un stock de
+`quantity` unités disponibles : ils se décrivent par des créneaux et une
+zone de couverture. Fusionner ça dans `listings` tel qu'il existe
+dénaturerait le modèle (`quantity` n'a pas de sens pour un service).
+
+**Travail, avant tout code** : trancher explicitement si `listings` reçoit un
+champ `listing_type` (`equipment` | `service`) avec des colonnes optionnelles
+selon le type, ou si `services` devient une table séparée avec son propre
+cycle de modération. Ce choix structure toute la suite — ne pas le faire à la
+volée dans un correctif de composant.
+
+Ne dépend d'aucun autre chantier.
+
+## 14. Granularité géographique (région / commune / quartier)
+
+`city` reste une liste fermée de villes (`src/constants/index.ts`), étendue
+en pratique à la demande (Pikine, Guédiawaye, Rufisque ajoutées lors de
+l'audit du 09/2026 sans migration, `city` étant un champ texte libre en
+base). Une hiérarchie complète Région → Ville → Commune → Quartier est un
+chantier de données à part entière : la lister pour Dakar seul (Almadies,
+Mermoz, Sacré-Cœur, Plateau, Parcelles Assainies...) est déjà un travail de
+saisie non trivial, et l'étendre aux 14 régions sans données fiables
+produirait une liste incomplète pire que l'absence de liste.
+
+**Ne pas** commencer par un champ `quartier` texte libre non structuré : ça
+n'apporte aucune capacité de filtre réelle par rapport à `address` qui existe
+déjà, et fait doublon front sans valeur.
+
+## 15. Architecture mobile native
+
+**Dépend de** : à peu près tout ce qui précède, car un client mobile
+consomme la même API que le web. Aujourd'hui « l'API » est directement
+Supabase avec RLS ; un client mobile pourrait déjà s'y brancher avec les
+mêmes policies, sans backend supplémentaire, pour les fonctionnalités déjà
+livrées (marketplace, favoris, demandes). Ce qui dépend du chantier 2
+(service serveur) — paiement, WhatsApp — resterait indisponible côté mobile
+tant que ce service n'existe pas, pour le web comme pour le mobile.
+
+**Ne pas** dupliquer une règle métier dans le client mobile : le mobile
+consomme les mêmes RLS/fonctions `security definer` que le web, jamais une
+copie de la logique de disponibilité ou de capacité.
+
 ## Explicitement hors périmètre pour l'instant
 
-Chat temps réel, SMS, notifications push, GPS et suivi de livraison en temps
-réel, commissions automatisées complexes (paliers, parrainage), IA, système
-d'enchères. Chacun de ces sujets peut être réexaminé une fois les huit
-chantiers ci-dessus livrés — pas avant, car aucun n'a de prérequis satisfait
-aujourd'hui.
+Chat **temps réel** (WebSocket — voir chantier 9 pour l'alternative
+asynchrone déjà planifiée), SMS, notifications push, GPS et suivi de
+livraison en temps réel, commissions automatisées complexes (paliers,
+parrainage), IA, système d'enchères. Chacun de ces sujets peut être
+réexaminé une fois les chantiers ci-dessus livrés — pas avant, car aucun n'a
+de prérequis satisfait aujourd'hui.
 
 ## Comment ajouter un chantier à cette liste
 

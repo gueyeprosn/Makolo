@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ListingGridSkeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { CategoryCard, categoryIcon } from '@/components/listings/CategoryCard';
@@ -21,6 +22,9 @@ import { ListingCard } from '@/components/listings/ListingCard';
 import { useCategories, useListings } from '@/hooks/use-listings';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { CITIES } from '@/constants';
+
+const ANY_CITY = '__any_city__';
+const ANY_CATEGORY = '__any_category__';
 
 const QUICK_FILTERS = ['chaises', 'tables', 'tentes', 'sono', 'eclairage'] as const;
 
@@ -52,14 +56,21 @@ export function HomePage() {
   useDocumentTitle();
   const navigate = useNavigate();
   const [search, setSearch] = React.useState('');
+  const [city, setCity] = React.useState(ANY_CITY);
+  const [category, setCategory] = React.useState(ANY_CATEGORY);
 
   const categoriesQuery = useCategories();
   const popularQuery = useListings({ sort: 'recent', pageSize: 8, page: 1 });
 
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault();
+    const params = new URLSearchParams();
     const query = search.trim();
-    navigate(query ? `/materiel?q=${encodeURIComponent(query)}` : '/materiel');
+    if (query) params.set('q', query);
+    if (city !== ANY_CITY) params.set('ville', city);
+    if (category !== ANY_CATEGORY) params.set('categorie', category);
+    const qs = params.toString();
+    navigate(qs ? `/materiel?${qs}` : '/materiel');
   };
 
   return (
@@ -88,12 +99,16 @@ export function HomePage() {
               Trouvez et réservez facilement du matériel événementiel auprès de prestataires au Sénégal.
             </p>
 
-            <form onSubmit={handleSearch} className="mt-8 max-w-xl" role="search">
-              <label htmlFor="hero-search" className="sr-only">
-                Rechercher un matériel
-              </label>
-              <div className="flex flex-col gap-2.5 sm:flex-row">
-                <div className="relative flex-1">
+            <form
+              onSubmit={handleSearch}
+              role="search"
+              className="mt-8 max-w-3xl rounded-2xl border border-doux-200 bg-white p-2.5 shadow-pop sm:p-3"
+            >
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:divide-x sm:divide-doux-200">
+                <div className="relative flex-[1.8]">
+                  <label htmlFor="hero-search" className="sr-only">
+                    Que recherchez-vous ?
+                  </label>
                   <Search
                     className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-doux"
                     aria-hidden="true"
@@ -103,15 +118,60 @@ export function HomePage() {
                     type="search"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Rechercher un matériel..."
-                    className="h-12 pl-10"
+                    placeholder="Chaises, tentes..."
+                    className="h-12 border-0 pl-10 shadow-none focus-visible:ring-0"
                   />
                 </div>
-                <Button type="submit" variant="accent" size="lg" className="sm:w-auto">
+
+                <div className="flex-[0.9] sm:pl-2">
+                  <label htmlFor="hero-city" className="sr-only">
+                    Où ?
+                  </label>
+                  <Select value={city} onValueChange={setCity}>
+                    <SelectTrigger id="hero-city" className="h-12 border-0 shadow-none focus:ring-0">
+                      <MapPin className="size-4 shrink-0 text-doux" aria-hidden="true" />
+                      <SelectValue placeholder="Où ?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ANY_CITY}>Ville</SelectItem>
+                      {CITIES.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex-[0.9] sm:pl-2">
+                  <label htmlFor="hero-category" className="sr-only">
+                    Catégorie
+                  </label>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger id="hero-category" className="h-12 border-0 shadow-none focus:ring-0">
+                      <SelectValue placeholder="Catégorie" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ANY_CATEGORY}>Catégorie</SelectItem>
+                      {(categoriesQuery.data ?? []).map((cat) => (
+                        <SelectItem key={cat.id} value={cat.slug}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button type="submit" variant="accent" size="lg" className="h-12 sm:w-auto">
+                  <Search className="size-4 sm:hidden" aria-hidden="true" />
                   Rechercher
                 </Button>
               </div>
             </form>
+
+            <p className="mt-3 text-sm text-doux">
+              La disponibilité exacte à la date de votre événement se vérifie sur chaque annonce.
+            </p>
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <span className="text-sm font-medium text-doux">Recherches fréquentes :</span>

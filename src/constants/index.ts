@@ -5,9 +5,22 @@ export const APP_TAGLINE = 'Louez • Célébrez • Simplement';
 export const APP_DESCRIPTION =
   "Trouvez et réservez facilement du matériel événementiel auprès de prestataires au Sénégal : chaises, tables, tentes, sonorisation, éclairage et décoration.";
 
-/** Villes couvertes au lancement. */
+/**
+ * Villes couvertes au lancement.
+ *
+ * `city` reste un champ texte libre en base (aucune contrainte `CHECK` SQL,
+ * voir docs/DATABASE.md) : cette liste ne restreint que la saisie côté
+ * interface (inscription, formulaire d'annonce, filtres). L'étendre ne
+ * nécessite donc aucune migration.
+ *
+ * Pikine, Guédiawaye et Rufisque forment avec Dakar l'agglomération
+ * dakaroise — la zone de plus forte densité de demande événementielle.
+ */
 export const CITIES = [
   'Dakar',
+  'Pikine',
+  'Guédiawaye',
+  'Rufisque',
   'Thiès',
   'Saint-Louis',
   'Touba',
