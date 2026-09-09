@@ -115,6 +115,13 @@ Testé à 320 / 375 / 390 / 430 px, tablette, desktop. Aucune page ne défile
 horizontalement dans son corps. Détail des composants et des états
 obligatoires : `docs/UX.md`.
 
+Pour une décision d'interface non déjà tranchée par `docs/UX.md`
+(nouveau composant, page marketing, question d'accessibilité précise) :
+`.claude/skills/ui-ux-pro-max/` — outil de recherche local vendoré depuis un
+projet tiers (provenance et limites d'usage dans son `NOTICE.md`). Ne
+jamais l'utiliser pour rouvrir la palette ou la typographie MAKALO, déjà
+fixées.
+
 ## Sécurité — la règle qui prime sur toutes les autres
 
 **Aucune donnée venant du navigateur n'est fiable.** Prix, disponibilité,

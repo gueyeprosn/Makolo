@@ -101,3 +101,14 @@ plateforme.
 Titre et meta description mis à jour par page via `useDocumentTitle()`. Slugs
 lisibles (`/materiel/chaise-napoleon-doree-dakar`), générés par `slugify()` à
 partir du titre et de la ville.
+
+## Outil de recherche pour les décisions non couvertes ici
+
+Pour une décision d'interface qui n'est **pas** déjà tranchée par ce document
+(un nouveau composant de tableau de bord, une page marketing, une question
+d'accessibilité précise) : `.claude/skills/ui-ux-pro-max/` — base de
+recherche locale (styles, palettes, typographies, règles UX) avec un guide
+spécifique aux stacks `react`, `html-tailwind` et `shadcn`. Vendoré depuis un
+projet tiers, voir `.claude/skills/ui-ux-pro-max/NOTICE.md` pour la
+provenance et ce qu'il ne faut **pas** lui demander — notamment de
+réinventer la palette ci-dessus, qui reste fixée.

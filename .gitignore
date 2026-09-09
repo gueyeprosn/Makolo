@@ -17,3 +17,7 @@ coverage
 # Artefacts de compilation TypeScript
 *.tsbuildinfo
 coverage
+
+# Cache Python (skill ui-ux-pro-max vendoré)
+__pycache__/
+*.pyc
