@@ -13,3 +13,7 @@ coverage
 .idea
 .vscode/*
 !.vscode/extensions.json
+
+# Artefacts de compilation TypeScript
+*.tsbuildinfo
+coverage

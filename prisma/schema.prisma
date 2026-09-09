@@ -1,0 +1,263 @@
+// ===========================================================================
+// MAKALO — Schéma Prisma
+//
+// ⚠️  LIRE AVANT D'UTILISER
+//
+// Ce schéma n'est PAS utilisé par l'application front-end actuelle.
+// L'application est une SPA Vite qui parle directement à Supabase avec la clé
+// publique `anon` ; la sécurité y est assurée par les policies RLS
+// (scripts/sql/02_rls.sql). Prisma ne peut pas tourner dans un navigateur et
+// ne connaît pas RLS : l'y brancher reviendrait à exposer une connexion
+// Postgres complète côté client.
+//
+// Ce fichier existe pour la COUCHE SERVEUR à venir, décrite dans
+// docs/ROADMAP.md — celle qui devra héberger :
+//   • les webhooks d'encaissement Wave / Orange Money (vérification de
+//     signature côté serveur, impossible côté client) ;
+//   • l'envoi des messages WhatsApp Business ;
+//   • la génération des factures PDF conformes (NINEA / TVA) ;
+//   • les tâches planifiées (relances, rapprochement des paiements).
+//
+// La source de vérité du schéma reste scripts/sql/01_schema.sql.
+// Ce fichier en est le miroir typé : toute évolution se fait D'ABORD en SQL,
+// puis se reporte ici (`prisma db pull` après migration Supabase).
+//
+// Mise en place quand la couche serveur arrivera :
+//   1. DATABASE_URL = chaîne de connexion « pooler » Supabase (port 6543)
+//   2. DIRECT_URL   = connexion directe (port 5432), requise pour les migrations
+//   3. npx prisma db pull      → aligne ce schéma sur la base réelle
+//   4. npx prisma generate     → génère le client typé
+//
+// Le service serveur utilisera la clé `service_role`, qui CONTOURNE RLS :
+// chaque requête devra donc filtrer explicitement par utilisateur. Ne jamais
+// exposer cette clé au navigateur.
+// ===========================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  schemas   = ["public"]
+}
+
+// ---------------------------------------------------------------------------
+// Énumérations — miroir des types SQL
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  client
+  provider
+  admin
+
+  @@map("user_role")
+  @@schema("public")
+}
+
+enum ListingStatus {
+  draft
+  pending
+  published
+  archived
+  rejected
+
+  @@map("listing_status")
+  @@schema("public")
+}
+
+enum BookingStatus {
+  pending
+  accepted
+  rejected
+  cancelled
+
+  @@map("booking_status")
+  @@schema("public")
+}
+
+enum PriceUnit {
+  jour
+  evenement
+  unite
+  heure
+  semaine
+
+  @@map("price_unit")
+  @@schema("public")
+}
+
+enum NotificationType {
+  booking_request
+  booking_accepted
+  booking_rejected
+  booking_cancelled
+  listing_published
+  listing_rejected
+
+  @@map("notification_type")
+  @@schema("public")
+}
+
+// ---------------------------------------------------------------------------
+// Profil applicatif — la ligne est créée par le trigger `handle_new_user()`
+// à partir de auth.users (géré par Supabase Auth, hors de ce schéma).
+// ---------------------------------------------------------------------------
+
+model Profile {
+  id        String   @id @db.Uuid
+  email     String   @unique
+  fullName  String   @map("full_name")
+  phone     String?
+  avatarUrl String?  @map("avatar_url")
+  role      UserRole @default(client)
+  city      String?
+  bio       String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  listings         Listing[]
+  favorites        Favorite[]
+  clientBookings   BookingRequest[] @relation("BookingClient")
+  providerBookings BookingRequest[] @relation("BookingProvider")
+  notifications    Notification[]
+
+  @@index([role])
+  @@index([city])
+  @@index([active])
+  @@index([createdAt(sort: Desc)])
+  @@map("profiles")
+  @@schema("public")
+}
+
+model Category {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String   @unique
+  description String?
+  icon        String?
+  imageUrl    String?  @map("image_url")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  listings Listing[]
+
+  @@index([active])
+  @@index([slug])
+  @@map("categories")
+  @@schema("public")
+}
+
+model Listing {
+  id                 String        @id @default(uuid()) @db.Uuid
+  providerId         String        @map("provider_id") @db.Uuid
+  categoryId         String        @map("category_id") @db.Uuid
+  title              String
+  slug               String        @unique
+  description        String
+  price              Decimal       @db.Decimal(12, 2)
+  priceUnit          PriceUnit     @default(jour) @map("price_unit")
+  city               String
+  address            String?
+  conditions         String?
+  availabilityStatus Boolean       @default(true) @map("availability_status")
+  quantity           Int           @default(1)
+  coverImage         String?       @map("cover_image")
+  status             ListingStatus @default(draft)
+  moderationReason   String?       @map("moderation_reason")
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  provider Profile          @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  category Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  images   ListingImage[]
+  favorites Favorite[]
+  bookings BookingRequest[]
+
+  @@index([categoryId])
+  @@index([providerId])
+  @@index([city])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@index([price])
+  @@map("listings")
+  @@schema("public")
+}
+
+model ListingImage {
+  id        String   @id @default(uuid()) @db.Uuid
+  listingId String   @map("listing_id") @db.Uuid
+  imageUrl  String   @map("image_url")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, sortOrder])
+  @@map("listing_images")
+  @@schema("public")
+}
+
+model Favorite {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  listingId String   @map("listing_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user    Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId], map: "favorites_unique")
+  @@index([userId])
+  @@index([listingId])
+  @@map("favorites")
+  @@schema("public")
+}
+
+model BookingRequest {
+  id            String        @id @default(uuid()) @db.Uuid
+  listingId     String        @map("listing_id") @db.Uuid
+  clientId      String        @map("client_id") @db.Uuid
+  providerId    String        @map("provider_id") @db.Uuid
+  // NOTE : une seule date aujourd'hui. Le passage à une période
+  // (requestedFrom / requestedTo) est le chantier n°1 de docs/ROADMAP.md ;
+  // il se fait par migration SQL, puis `prisma db pull`.
+  requestedDate DateTime      @map("requested_date") @db.Date
+  quantity      Int
+  message       String?
+  status        BookingStatus @default(pending)
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  listing  Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  client   Profile @relation("BookingClient", fields: [clientId], references: [id], onDelete: Cascade)
+  provider Profile @relation("BookingProvider", fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@index([clientId])
+  @@index([providerId])
+  @@index([status])
+  @@index([listingId, requestedDate, status])
+  @@map("booking_requests")
+  @@schema("public")
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  type      NotificationType
+  title     String
+  message   String
+  link      String?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("notifications")
+  @@schema("public")
+}

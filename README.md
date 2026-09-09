@@ -162,6 +162,21 @@ L'application démarre sur <http://localhost:5173> — sans configuration, en mo
 | `npm run build` | Vérification des types puis build de production dans `dist/` |
 | `npm run preview` | Sert le build de production en local |
 | `npm run typecheck` | Vérification TypeScript seule |
+| `npm run test` | Tests unitaires (Vitest) — `tests/unit/` |
+| `npm run test:watch` | Tests en mode observation |
+| `npm run verify` | `typecheck` + `test` + `build`, dans l'ordre |
+
+---
+
+## 5 bis. Documentation et outillage du dépôt
+
+| Dossier | Contenu |
+|---|---|
+| `docs/` | Référence technique : produit, architecture, base de données, UX, sécurité, règles métier, feuille de route |
+| `tests/unit/` | Tests Vitest sur la logique pure (disponibilité, permissions, validations, formats sénégalais) |
+| `prisma/` | Schéma miroir pour la future couche serveur (paiement, WhatsApp, factures) — non branché à l'application actuelle, voir `prisma/README.md` |
+| `.claude/` | Règles, commandes et agents pour développer ce dépôt avec Claude Code |
+| `CLAUDE.md` | Point d'entrée du contexte d'ingénierie |
 
 ---
 
