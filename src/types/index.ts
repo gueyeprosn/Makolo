@@ -1,5 +1,5 @@
 /**
- * Types metier MAKOLO.
+ * Types metier MAKALO.
  * Ces types refletent exactement le schema SQL de scripts/sql/01_schema.sql.
  */
 

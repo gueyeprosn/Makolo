@@ -12,7 +12,7 @@ export function NotFoundPage() {
       <Logo variant="mark" className="mb-6 scale-150" />
 
       <p className="text-sm font-bold uppercase tracking-[0.18em] text-orange">Erreur 404</p>
-      <h1 className="makolo-h1 mt-3">Cette page n'existe pas.</h1>
+      <h1 className="makalo-h1 mt-3">Cette page n'existe pas.</h1>
       <p className="mt-4 max-w-md text-doux">
         Le lien est peut-être erroné ou l'offre que vous cherchiez a été retirée. Retournez à l'accueil ou explorez le
         matériel disponible.

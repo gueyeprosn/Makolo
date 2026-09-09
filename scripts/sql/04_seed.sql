@@ -1,5 +1,5 @@
 -- ===========================================================================
--- MAKOLO — 04_seed.sql
+-- MAKALO — 04_seed.sql
 -- Données initiales : catégories du catalogue + jeu de démonstration.
 --
 -- À exécuter APRÈS 03_storage.sql.
@@ -9,9 +9,9 @@
 -- mots de passe. Créez d'abord les trois comptes dans le Dashboard
 -- (Authentication → Users → Add user, en cochant « Auto Confirm User ») :
 --
---     client@makolo.sn        / Makolo2026
---     prestataire@makolo.sn   / Makolo2026
---     admin@makolo.sn         / Makolo2026
+--     client@makalo.sn        / Makalo2026
+--     prestataire@makalo.sn   / Makalo2026
+--     admin@makalo.sn         / Makalo2026
 --
 -- Le trigger `handle_new_user()` crée automatiquement leur profil avec le rôle
 -- `client`. La PARTIE B ci-dessous ajuste ensuite les rôles et insère les
@@ -62,9 +62,9 @@ declare
   l_sono     uuid;
   l_tente    uuid;
 begin
-  select id into v_admin    from public.profiles where email = 'admin@makolo.sn';
-  select id into v_client   from public.profiles where email = 'client@makolo.sn';
-  select id into v_provider from public.profiles where email = 'prestataire@makolo.sn';
+  select id into v_admin    from public.profiles where email = 'admin@makalo.sn';
+  select id into v_client   from public.profiles where email = 'client@makalo.sn';
+  select id into v_provider from public.profiles where email = 'prestataire@makalo.sn';
 
   if v_admin is null or v_client is null or v_provider is null then
     raise notice 'Comptes de test absents : creez-les dans Authentication -> Users puis rejouez ce script.';
@@ -74,7 +74,7 @@ begin
   -- 1. Rôles et profils de démonstration -----------------------------------
   update public.profiles
      set role = 'admin', full_name = 'Awa Ndiaye', city = 'Dakar', phone = '77 000 10 10',
-         bio = 'Équipe MAKOLO — modération et support des prestataires.'
+         bio = 'Équipe MAKALO — modération et support des prestataires.'
    where id = v_admin;
 
   update public.profiles
@@ -202,7 +202,7 @@ begin
      'Réception de fin d''année, 150 convives.', 'pending')
   on conflict do nothing;
 
-  raise notice 'Jeu de demonstration MAKOLO installe avec succes.';
+  raise notice 'Jeu de demonstration MAKALO installe avec succes.';
 end $$;
 
 -- ---------------------------------------------------------------------------

@@ -35,31 +35,31 @@ export const DEMO_DATES = {
 /* Comptes de démonstration                                                    */
 /* -------------------------------------------------------------------------- */
 
-export const DEMO_PASSWORD = 'Makolo2026';
+export const DEMO_PASSWORD = 'Makalo2026';
 
 export const DEMO_ACCOUNTS = [
-  { email: 'client@makolo.sn', role: 'Client', password: DEMO_PASSWORD },
-  { email: 'prestataire@makolo.sn', role: 'Prestataire', password: DEMO_PASSWORD },
-  { email: 'admin@makolo.sn', role: 'Administrateur', password: DEMO_PASSWORD },
+  { email: 'client@makalo.sn', role: 'Client', password: DEMO_PASSWORD },
+  { email: 'prestataire@makalo.sn', role: 'Prestataire', password: DEMO_PASSWORD },
+  { email: 'admin@makalo.sn', role: 'Administrateur', password: DEMO_PASSWORD },
 ];
 
 export const demoProfiles: Profile[] = [
   {
     id: 'usr-admin',
-    email: 'admin@makolo.sn',
+    email: 'admin@makalo.sn',
     full_name: 'Awa Ndiaye',
     phone: '77 000 10 10',
     avatar_url: null,
     role: 'admin',
     city: 'Dakar',
-    bio: "Équipe MAKOLO — modération et support des prestataires.",
+    bio: "Équipe MAKALO — modération et support des prestataires.",
     active: true,
     created_at: iso(180),
     updated_at: iso(20),
   },
   {
     id: 'usr-client',
-    email: 'client@makolo.sn',
+    email: 'client@makalo.sn',
     full_name: 'Fatou Sarr',
     phone: '77 000 20 20',
     avatar_url: null,
@@ -85,7 +85,7 @@ export const demoProfiles: Profile[] = [
   },
   {
     id: 'usr-provider',
-    email: 'prestataire@makolo.sn',
+    email: 'prestataire@makalo.sn',
     full_name: 'Ibrahima Fall',
     phone: '77 000 30 30',
     avatar_url: null,

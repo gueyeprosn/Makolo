@@ -66,19 +66,19 @@
 }
 
 @layer components {
-  .makolo-h1 {
+  .makalo-h1 {
     @apply text-[clamp(1.875rem,6vw,3.5rem)] leading-[1.08] font-extrabold tracking-tight text-nuit;
   }
-  .makolo-h2 {
+  .makalo-h2 {
     @apply text-[clamp(1.5rem,3.5vw,2.25rem)] leading-tight font-bold tracking-tight text-nuit;
   }
-  .makolo-h3 {
+  .makalo-h3 {
     @apply text-lg sm:text-xl font-semibold text-nuit;
   }
-  .makolo-meta {
+  .makalo-meta {
     @apply text-sm text-doux;
   }
-  .makolo-section {
+  .makalo-section {
     @apply py-12 sm:py-16 lg:py-20;
   }
   .skeleton {

@@ -50,7 +50,7 @@ export interface CreateBookingInput {
  *
  * L'interface applicative ne connaît que ce contrat, jamais l'implémentation.
  */
-export interface MakoloBackend {
+export interface MakaloBackend {
   readonly mode: 'supabase' | 'demo';
 
   /* Auth ------------------------------------------------------------------ */

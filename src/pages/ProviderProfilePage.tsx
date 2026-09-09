@@ -60,7 +60,7 @@ export function ProviderProfilePage() {
         <EmptyState
           icon={Store}
           title="Prestataire introuvable"
-          description="Ce profil n'existe pas ou n'est plus actif sur MAKOLO."
+          description="Ce profil n'existe pas ou n'est plus actif sur MAKALO."
           action={
             <Button asChild>
               <Link to="/materiel">Voir tout le matériel</Link>
@@ -88,7 +88,7 @@ export function ProviderProfilePage() {
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="makolo-h2">{provider.full_name}</h1>
+              <h1 className="makalo-h2">{provider.full_name}</h1>
               <Badge variant="orange">
                 <Store aria-hidden="true" />
                 Prestataire
@@ -137,7 +137,7 @@ export function ProviderProfilePage() {
       </Card>
 
       <section className="mt-10" aria-labelledby="annonces-title">
-        <h2 id="annonces-title" className="makolo-h2 mb-5">
+        <h2 id="annonces-title" className="makalo-h2 mb-5">
           Ses offres
         </h2>
 

@@ -1,6 +1,6 @@
 import type { BookingStatus, ListingStatus, PriceUnit, UserRole } from '@/types';
 
-export const APP_NAME = 'MAKOLO';
+export const APP_NAME = 'MAKALO';
 export const APP_TAGLINE = 'Louez • Célébrez • Simplement';
 export const APP_DESCRIPTION =
   "Trouvez et réservez facilement du matériel événementiel auprès de prestataires au Sénégal : chaises, tables, tentes, sonorisation, éclairage et décoration.";

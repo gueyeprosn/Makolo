@@ -1,5 +1,5 @@
 -- ===========================================================================
--- MAKOLO — 01_schema.sql
+-- MAKALO — 01_schema.sql
 -- Schéma de base de données : types, tables, index, triggers et fonctions.
 --
 -- À exécuter EN PREMIER dans l'éditeur SQL de Supabase

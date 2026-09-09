@@ -1,6 +1,6 @@
 <div align="center">
 
-# MAKOLO
+# MAKALO
 
 **La plateforme de location de matériel événementiel au Sénégal.**
 
@@ -29,7 +29,7 @@ Louez • Célébrez • Simplement
 
 ## 1. Présentation
 
-MAKOLO est une marketplace qui met en relation les organisateurs d'événements et les loueurs
+MAKALO est une marketplace qui met en relation les organisateurs d'événements et les loueurs
 de matériel événementiel au Sénégal : chaises, tables, tentes, sonorisation, éclairage,
 décoration et accessoires.
 
@@ -89,7 +89,7 @@ le prestataire.
 |---|---|
 | Framework | React 18 + TypeScript (strict) |
 | Build | Vite 6 |
-| Styles | Tailwind CSS 3 (tokens de marque MAKOLO) |
+| Styles | Tailwind CSS 3 (tokens de marque MAKALO) |
 | Composants | Primitives Radix UI façon shadcn/ui, écrites dans `src/components/ui` |
 | Icônes | Lucide React (bibliothèque unique) |
 | Routage | React Router 6 |
@@ -125,7 +125,7 @@ src/
 ### La couche données
 
 L'interface ne connaît qu'un seul objet : `api`, exporté par `src/services/index.ts`.
-Il implémente le contrat `MakoloBackend` (`services/backend.ts`), avec deux implémentations :
+Il implémente le contrat `MakaloBackend` (`services/backend.ts`), avec deux implémentations :
 
 | Implémentation | Fichier | Quand ? |
 |---|---|---|
@@ -147,7 +147,7 @@ disponibilité), afin que les parcours testés en local correspondent au comport
 
 ```bash
 git clone <url-du-depot>
-cd Makolo
+cd Makalo
 npm install
 npm run dev
 ```
@@ -186,7 +186,7 @@ VITE_SUPABASE_ANON_KEY=votre-cle-anon-publique
 
 ## 7. Mode démonstration
 
-Sans variables d'environnement, MAKOLO démarre avec un jeu de données fictives en mémoire
+Sans variables d'environnement, MAKALO démarre avec un jeu de données fictives en mémoire
 (persisté dans `localStorage` uniquement pour ne pas perdre la session au rafraîchissement).
 
 Un bandeau orange le signale en permanence, avec les identifiants de test.
@@ -269,9 +269,9 @@ dans **Authentication → Users → Add user** (en cochant *Auto Confirm User*),
 
 | Rôle | E-mail | Mot de passe |
 |---|---|---|
-| Client | `client@makolo.sn` | `Makolo2026` |
-| Prestataire | `prestataire@makolo.sn` | `Makolo2026` |
-| Administrateur | `admin@makolo.sn` | `Makolo2026` |
+| Client | `client@makalo.sn` | `Makalo2026` |
+| Prestataire | `prestataire@makalo.sn` | `Makalo2026` |
+| Administrateur | `admin@makalo.sn` | `Makalo2026` |
 
 > Ces identifiants sont destinés au test et à la recette. **Supprimez-les ou changez leurs mots
 > de passe avant toute mise en production.**
@@ -371,6 +371,6 @@ tables `payments`, `messages`, `deliveries` ou `reviews` sans remaniement.
 
 <div align="center">
 
-**MAKOLO** — Dakar, Sénégal
+**MAKALO** — Dakar, Sénégal
 
 </div>

@@ -56,7 +56,7 @@ export function toAppError(error: unknown, fallback = GENERIC): AppError {
 
   if (import.meta.env.DEV) {
     // Détail technique réservé au développement.
-    console.error('[MAKOLO]', error);
+    console.error('[MAKALO]', error);
   }
 
   if (error instanceof TypeError && /fetch|network/i.test(error.message)) {

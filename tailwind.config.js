@@ -10,7 +10,7 @@ export default {
     },
     extend: {
       colors: {
-        /* Identite MAKOLO */
+        /* Identite MAKALO */
         nuit: {
           DEFAULT: '#0F2B5B',
           50: '#EEF3FB',

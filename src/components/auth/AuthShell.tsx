@@ -17,12 +17,12 @@ export function AuthShell({ title, description, children, footer }: AuthShellPro
       <DemoBanner />
       <div className="grid flex-1 lg:grid-cols-2">
         <div className="flex flex-col px-5 py-8 sm:px-8 lg:px-14 lg:py-12">
-          <Link to="/" className="w-fit rounded-lg focus-visible:ring-2 focus-visible:ring-orange" aria-label="MAKOLO — Accueil">
+          <Link to="/" className="w-fit rounded-lg focus-visible:ring-2 focus-visible:ring-orange" aria-label="MAKALO — Accueil">
             <Logo />
           </Link>
 
           <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-10">
-            <h1 className="makolo-h2">{title}</h1>
+            <h1 className="makalo-h2">{title}</h1>
             <p className="mt-2 text-doux">{description}</p>
             <div className="mt-7">{children}</div>
             {footer && <div className="mt-6 text-sm text-doux">{footer}</div>}
@@ -37,7 +37,7 @@ export function AuthShell({ title, description, children, footer }: AuthShellPro
               Des événements qui vous ressemblent.
             </h2>
             <p className="mt-4 leading-relaxed text-nuit-100">
-              MAKOLO réunit les loueurs de matériel événementiel du Sénégal : chaises, tables, tentes, sonorisation,
+              MAKALO réunit les loueurs de matériel événementiel du Sénégal : chaises, tables, tentes, sonorisation,
               éclairage et décoration.
             </p>
             <ul className="mt-8 space-y-4 text-nuit-100">

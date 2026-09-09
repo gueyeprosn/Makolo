@@ -23,7 +23,7 @@ import type {
   UserRole,
 } from '@/types';
 import type { CategoryValues, ListingValues, ProfileValues, RegisterValues } from '@/lib/validations';
-import type { AdminUserFilters, CreateBookingInput, MakoloBackend, SignUpResult } from './backend';
+import type { AdminUserFilters, CreateBookingInput, MakaloBackend, SignUpResult } from './backend';
 import { buildAvailability } from './demo-backend';
 
 /**
@@ -100,7 +100,7 @@ async function requireUserId(): Promise<string> {
   return data.user.id;
 }
 
-export const supabaseBackend: MakoloBackend = {
+export const supabaseBackend: MakaloBackend = {
   mode: 'supabase',
 
   /* Auth ------------------------------------------------------------------ */
@@ -134,10 +134,10 @@ export const supabaseBackend: MakoloBackend = {
     const { data, error } = await client.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
     if (error) throw toAppError(error);
     const profile = data.user ? await fetchProfile(data.user.id) : null;
-    if (!profile) throw new AppError('Profil introuvable. Contactez le support MAKOLO.', 'profile_missing');
+    if (!profile) throw new AppError('Profil introuvable. Contactez le support MAKALO.', 'profile_missing');
     if (!profile.active) {
       await client.auth.signOut();
-      throw new AppError('Votre compte est désactivé. Contactez le support MAKOLO.', 'inactive');
+      throw new AppError('Votre compte est désactivé. Contactez le support MAKALO.', 'inactive');
     }
     return { id: profile.id, email: profile.email, profile };
   },

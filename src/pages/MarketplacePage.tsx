@@ -125,7 +125,7 @@ export function MarketplacePage() {
   return (
     <div className="container py-8 lg:py-12">
       <header className="mb-6">
-        <h1 className="makolo-h2">{title}</h1>
+        <h1 className="makalo-h2">{title}</h1>
         <p className="mt-2 text-doux">
           {listingsQuery.isPending
             ? 'Chargement des offres…'

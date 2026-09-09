@@ -37,7 +37,7 @@ export function ProtectedRoute({ roles }: ProtectedRouteProps) {
   if (!profile.active) {
     return (
       <div className="container py-16">
-        <UnauthorizedState description="Votre compte est désactivé. Contactez le support MAKOLO pour le réactiver." />
+        <UnauthorizedState description="Votre compte est désactivé. Contactez le support MAKALO pour le réactiver." />
       </div>
     );
   }

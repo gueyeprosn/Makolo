@@ -189,7 +189,7 @@ export function ListingDetailPage() {
               )}
             </div>
 
-            <h1 className="makolo-h2 mt-3">{listing.title}</h1>
+            <h1 className="makalo-h2 mt-3">{listing.title}</h1>
 
             <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-doux">
               <span className="inline-flex items-center gap-1.5">
@@ -205,7 +205,7 @@ export function ListingDetailPage() {
           </div>
 
           <section className="mt-8" aria-labelledby="description-title">
-            <h2 id="description-title" className="makolo-h3">
+            <h2 id="description-title" className="makalo-h3">
               Description
             </h2>
             <p className="mt-2.5 whitespace-pre-line leading-relaxed text-doux-600">{listing.description}</p>
@@ -213,7 +213,7 @@ export function ListingDetailPage() {
 
           {listing.conditions && (
             <section className="mt-8" aria-labelledby="conditions-title">
-              <h2 id="conditions-title" className="makolo-h3">
+              <h2 id="conditions-title" className="makalo-h3">
                 Conditions de location
               </h2>
               <p className="mt-2.5 flex gap-2.5 rounded-xl bg-ivoire p-4 text-sm leading-relaxed text-doux-600">
@@ -226,7 +226,7 @@ export function ListingDetailPage() {
           {/* Prestataire */}
           {listing.provider && (
             <section className="mt-8" aria-labelledby="prestataire-title">
-              <h2 id="prestataire-title" className="makolo-h3">
+              <h2 id="prestataire-title" className="makalo-h3">
                 Le prestataire
               </h2>
               <Card className="mt-3">

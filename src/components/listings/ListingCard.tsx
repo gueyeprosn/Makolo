@@ -87,7 +87,7 @@ export function ListingCard({ listing, hideFavorite, showStatus, footer, classNa
       </div>
 
       <div className="flex flex-1 flex-col p-4">
-        <h3 className="makolo-h3 leading-snug">
+        <h3 className="makalo-h3 leading-snug">
           <Link
             to={href}
             className="rounded transition-colors hover:text-orange-600 focus-visible:ring-2 focus-visible:ring-orange"

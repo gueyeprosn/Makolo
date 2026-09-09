@@ -1,9 +1,9 @@
 {
-  "name": "makolo",
+  "name": "makalo",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "MAKOLO — Plateforme de location de materiel evenementiel au Senegal",
+  "description": "MAKALO — Plateforme de location de materiel evenementiel au Senegal",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

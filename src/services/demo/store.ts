@@ -22,7 +22,7 @@ export interface DemoState {
   currentUserId: string | null;
 }
 
-const STORAGE_KEY = 'makolo-demo-state-v1';
+const STORAGE_KEY = 'makalo-demo-state-v1';
 
 function seed(): DemoState {
   return {

@@ -30,7 +30,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-doux-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="container flex h-16 items-center justify-between gap-4">
-        <Link to="/" className="rounded-lg focus-visible:ring-2 focus-visible:ring-orange" aria-label="MAKOLO — Accueil">
+        <Link to="/" className="rounded-lg focus-visible:ring-2 focus-visible:ring-orange" aria-label="MAKALO — Accueil">
           <Logo />
         </Link>
 
@@ -91,7 +91,7 @@ export function Header() {
             </DrawerTrigger>
             <DrawerContent side="right" className="p-5">
               <DrawerTitle className="sr-only">Menu de navigation</DrawerTitle>
-              <DrawerDescription className="sr-only">Accédez aux sections de MAKOLO.</DrawerDescription>
+              <DrawerDescription className="sr-only">Accédez aux sections de MAKALO.</DrawerDescription>
 
               <Logo showTagline />
 

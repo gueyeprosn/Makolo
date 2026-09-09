@@ -1,5 +1,5 @@
 -- ===========================================================================
--- MAKOLO — 02_rls.sql
+-- MAKALO — 02_rls.sql
 -- Row Level Security : la sécurité réelle de la plateforme.
 --
 -- À exécuter APRÈS 01_schema.sql.

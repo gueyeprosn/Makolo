@@ -33,7 +33,7 @@ export function AdminDashboardPage() {
     <>
       <PageHeader
         title="Tableau de bord"
-        description="Vue d'ensemble de l'activité de la plateforme MAKOLO."
+        description="Vue d'ensemble de l'activité de la plateforme MAKALO."
         action={
           stats && stats.pendingListings > 0 ? (
             <Button asChild variant="accent">

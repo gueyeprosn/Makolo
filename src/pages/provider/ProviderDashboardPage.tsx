@@ -64,7 +64,7 @@ export function ProviderDashboardPage() {
 
       <section className="mt-10" aria-labelledby="demandes-title">
         <div className="mb-4 flex items-center justify-between gap-4">
-          <h2 id="demandes-title" className="makolo-h3">
+          <h2 id="demandes-title" className="makalo-h3">
             Demandes à traiter
           </h2>
           <Button asChild variant="link" size="sm">
@@ -115,7 +115,7 @@ export function ProviderDashboardPage() {
           <CardTitle>Publier une nouvelle offre</CardTitle>
           <CardDescription>
             Décrivez votre matériel, ajoutez des photos, fixez votre tarif et votre ville. Votre annonce est vérifiée
-            par l'équipe MAKOLO avant sa mise en ligne.
+            par l'équipe MAKALO avant sa mise en ligne.
           </CardDescription>
         </CardHeader>
         <CardContent>

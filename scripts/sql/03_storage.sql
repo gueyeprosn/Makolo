@@ -1,5 +1,5 @@
 -- ===========================================================================
--- MAKOLO — 03_storage.sql
+-- MAKALO — 03_storage.sql
 -- Bucket de stockage des photos d'annonces et policies associées.
 --
 -- À exécuter APRÈS 02_rls.sql.

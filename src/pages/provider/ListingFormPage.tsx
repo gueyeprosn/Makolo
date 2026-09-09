@@ -89,7 +89,7 @@ export function ListingFormPage() {
       toast.success(
         publish ? 'Offre soumise à validation.' : 'Brouillon enregistré.',
         publish
-          ? "Votre annonce sera visible dès qu'elle aura été validée par l'équipe MAKOLO."
+          ? "Votre annonce sera visible dès qu'elle aura été validée par l'équipe MAKALO."
           : 'Ajoutez vos photos puis soumettez-la à validation.',
       );
     } catch (error) {

@@ -20,7 +20,7 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        storageKey: 'makolo-auth',
+        storageKey: 'makalo-auth',
       },
     })
   : null;

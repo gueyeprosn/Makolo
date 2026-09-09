@@ -14,7 +14,7 @@ import { ROLE_HOME } from '@/constants';
 import { firstName } from '@/lib/utils';
 
 export function LoginPage() {
-  useDocumentTitle('Connexion', 'Connectez-vous à votre compte MAKOLO.');
+  useDocumentTitle('Connexion', 'Connectez-vous à votre compte MAKALO.');
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -40,7 +40,7 @@ export function LoginPage() {
   return (
     <AuthShell
       title="Connexion"
-      description="Accédez à vos demandes, vos favoris et votre espace MAKOLO."
+      description="Accédez à vos demandes, vos favoris et votre espace MAKALO."
       footer={
         <p>
           Vous n'avez pas encore de compte ?{' '}

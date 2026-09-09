@@ -24,7 +24,7 @@ import type {
   UserRole,
 } from '@/types';
 import type { CategoryValues, ListingValues, ProfileValues, RegisterValues } from '@/lib/validations';
-import type { AdminUserFilters, CreateBookingInput, MakoloBackend, SignUpResult } from './backend';
+import type { AdminUserFilters, CreateBookingInput, MakaloBackend, SignUpResult } from './backend';
 import { DEMO_PASSWORD } from './demo/data';
 import { getState, mutate } from './demo/store';
 import { placeholderFor } from '@/assets/placeholders';
@@ -60,7 +60,7 @@ function currentProfile(): Profile | null {
 function requireProfile(): Profile {
   const profile = currentProfile();
   if (!profile) throw new AppError('Vous devez être connecté pour effectuer cette action.', 'unauthenticated');
-  if (!profile.active) throw new AppError('Votre compte est désactivé. Contactez le support MAKOLO.', 'inactive');
+  if (!profile.active) throw new AppError('Votre compte est désactivé. Contactez le support MAKALO.', 'inactive');
   return profile;
 }
 
@@ -118,7 +118,7 @@ function bookedQuantities(listingId: string, date: string) {
   return { accepted, pending };
 }
 
-export const demoBackend: MakoloBackend = {
+export const demoBackend: MakaloBackend = {
   mode: 'demo',
 
   /* Auth ------------------------------------------------------------------ */
@@ -142,7 +142,7 @@ export const demoBackend: MakoloBackend = {
       throw new AppError('E-mail ou mot de passe incorrect.', 'invalid_credentials');
     }
     if (!profile.active) {
-      throw new AppError('Votre compte est désactivé. Contactez le support MAKOLO.', 'inactive');
+      throw new AppError('Votre compte est désactivé. Contactez le support MAKALO.', 'inactive');
     }
     mutate((draft) => {
       draft.currentUserId = profile.id;

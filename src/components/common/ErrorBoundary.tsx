@@ -18,7 +18,7 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
   }
 
   componentDidCatch(error: unknown) {
-    if (import.meta.env.DEV) console.error('[MAKOLO] Erreur de rendu', error);
+    if (import.meta.env.DEV) console.error('[MAKALO] Erreur de rendu', error);
   }
 
   render() {

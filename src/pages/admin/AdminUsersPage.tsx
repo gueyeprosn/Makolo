@@ -216,7 +216,7 @@ export function AdminUsersPage() {
         title={target?.active ? 'Désactiver ce compte ?' : 'Réactiver ce compte ?'}
         description={
           target?.active
-            ? `${target.full_name} ne pourra plus se connecter ni publier sur MAKOLO tant que son compte restera désactivé.`
+            ? `${target.full_name} ne pourra plus se connecter ni publier sur MAKALO tant que son compte restera désactivé.`
             : `${target?.full_name ?? ''} pourra de nouveau se connecter et utiliser la plateforme.`
         }
         confirmLabel={target?.active ? 'Désactiver' : 'Réactiver'}

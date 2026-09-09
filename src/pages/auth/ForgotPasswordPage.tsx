@@ -13,7 +13,7 @@ import { forgotPasswordSchema, type ForgotPasswordValues } from '@/lib/validatio
 import { errorMessage } from '@/lib/errors';
 
 export function ForgotPasswordPage() {
-  useDocumentTitle('Mot de passe oublié', 'Réinitialisez le mot de passe de votre compte MAKOLO.');
+  useDocumentTitle('Mot de passe oublié', 'Réinitialisez le mot de passe de votre compte MAKALO.');
   const [sent, setSent] = React.useState(false);
 
   const form = useForm<ForgotPasswordValues>({

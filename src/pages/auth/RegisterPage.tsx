@@ -19,7 +19,7 @@ import { CITIES, ROLE_HOME } from '@/constants';
 import { cn } from '@/lib/utils';
 
 export function RegisterPage() {
-  useDocumentTitle('Créer un compte', 'Rejoignez MAKOLO en tant que client ou prestataire.');
+  useDocumentTitle('Créer un compte', 'Rejoignez MAKALO en tant que client ou prestataire.');
   const { signUp } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
@@ -51,7 +51,7 @@ export function RegisterPage() {
         setConfirmationSent(true);
         return;
       }
-      toast.success('Bienvenue sur MAKOLO !', 'Votre compte a été créé avec succès.');
+      toast.success('Bienvenue sur MAKALO !', 'Votre compte a été créé avec succès.');
       navigate(ROLE_HOME[values.role], { replace: true });
     } catch (error) {
       form.setError('root', { message: errorMessage(error) });
@@ -212,7 +212,7 @@ export function RegisterPage() {
               aria-invalid={Boolean(form.formState.errors.accept_terms)}
             />
             <Label htmlFor="accept_terms" className="cursor-pointer font-normal leading-snug text-doux-600">
-              J'accepte les conditions d'utilisation et la politique de confidentialité de MAKOLO.
+              J'accepte les conditions d'utilisation et la politique de confidentialité de MAKALO.
             </Label>
           </div>
           {form.formState.errors.accept_terms && (

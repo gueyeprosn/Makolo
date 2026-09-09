@@ -104,7 +104,7 @@ export function AdminCategoriesPage() {
     <>
       <PageHeader
         title="Catégories"
-        description="Organisez le catalogue de matériel proposé sur MAKOLO."
+        description="Organisez le catalogue de matériel proposé sur MAKALO."
         action={
           <Button variant="accent" onClick={openCreate}>
             <PlusCircle className="size-4" aria-hidden="true" />

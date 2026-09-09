@@ -10,7 +10,7 @@ interface LogoProps {
 }
 
 /**
- * Identité MAKOLO.
+ * Identité MAKALO.
  *
  * Le symbole reprend les éléments de la charte : le M géométrique bleu nuit,
  * l'espace négatif figurant une table et deux chaises, le calendrier
@@ -23,8 +23,8 @@ export function Logo({ variant = 'full', tone = 'light', className, showTagline 
 
   return (
     <span className={cn('inline-flex items-center gap-2.5', className)}>
-      <svg viewBox="0 0 64 64" className="h-9 w-9 shrink-0" role="img" aria-label="MAKOLO">
-        <title>MAKOLO</title>
+      <svg viewBox="0 0 64 64" className="h-9 w-9 shrink-0" role="img" aria-label="MAKALO">
+        <title>MAKALO</title>
         {/* Éclats de célébration */}
         <g stroke="#FF7A30" strokeWidth="3.6" strokeLinecap="round">
           <path d="M30 3v8" />
@@ -73,7 +73,7 @@ export function Logo({ variant = 'full', tone = 'light', className, showTagline 
             className="text-[1.3rem] font-extrabold tracking-[-0.03em]"
             style={{ color: wordColor }}
           >
-            MAKOLO
+            MAKALO
           </span>
           {showTagline && (
             <span className="mt-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-doux">

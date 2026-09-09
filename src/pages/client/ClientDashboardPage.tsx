@@ -63,7 +63,7 @@ export function ClientDashboardPage() {
       {/* Demandes récentes */}
       <section className="mt-10" aria-labelledby="demandes-title">
         <div className="mb-4 flex items-center justify-between gap-4">
-          <h2 id="demandes-title" className="makolo-h3">
+          <h2 id="demandes-title" className="makalo-h3">
             Mes dernières demandes
           </h2>
           <Button asChild variant="link" size="sm">
@@ -103,7 +103,7 @@ export function ClientDashboardPage() {
       {/* Favoris */}
       <section className="mt-10" aria-labelledby="favoris-title">
         <div className="mb-4 flex items-center justify-between gap-4">
-          <h2 id="favoris-title" className="makolo-h3">
+          <h2 id="favoris-title" className="makalo-h3">
             Mes favoris
           </h2>
           <Button asChild variant="link" size="sm">

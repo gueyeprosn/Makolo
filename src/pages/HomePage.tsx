@@ -82,7 +82,7 @@ export function HomePage() {
               Louez • Célébrez • Simplement
             </Badge>
 
-            <h1 className="makolo-h1">Tout ce qu'il vous faut pour vos événements.</h1>
+            <h1 className="makalo-h1">Tout ce qu'il vous faut pour vos événements.</h1>
 
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-doux-600 sm:text-lg">
               Trouvez et réservez facilement du matériel événementiel auprès de prestataires au Sénégal.
@@ -161,11 +161,11 @@ export function HomePage() {
       </section>
 
       {/* --------------------------------------------------------- Catégories */}
-      <section className="makolo-section" aria-labelledby="categories-title">
+      <section className="makalo-section" aria-labelledby="categories-title">
         <div className="container">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h2 id="categories-title" className="makolo-h2">
+              <h2 id="categories-title" className="makalo-h2">
                 Explorez par catégorie
               </h2>
               <p className="mt-2 text-doux">Le matériel essentiel pour réussir votre événement.</p>
@@ -199,11 +199,11 @@ export function HomePage() {
       </section>
 
       {/* ---------------------------------------------------- Offres populaires */}
-      <section className="makolo-section bg-ivoire/60" aria-labelledby="offres-title">
+      <section className="makalo-section bg-ivoire/60" aria-labelledby="offres-title">
         <div className="container">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h2 id="offres-title" className="makolo-h2">
+              <h2 id="offres-title" className="makalo-h2">
                 Nos meilleures offres
               </h2>
               <p className="mt-2 text-doux">Les dernières annonces publiées par nos prestataires.</p>
@@ -234,10 +234,10 @@ export function HomePage() {
       </section>
 
       {/* ------------------------------------------------- Comment ça marche */}
-      <section id="comment-ca-marche" className="makolo-section scroll-mt-20" aria-labelledby="etapes-title">
+      <section id="comment-ca-marche" className="makalo-section scroll-mt-20" aria-labelledby="etapes-title">
         <div className="container">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 id="etapes-title" className="makolo-h2">
+            <h2 id="etapes-title" className="makalo-h2">
               Comment ça marche
             </h2>
             <p className="mt-2 text-doux">Trois étapes suffisent pour équiper votre événement.</p>
@@ -261,7 +261,7 @@ export function HomePage() {
       </section>
 
       {/* ------------------------------------------------ Devenir prestataire */}
-      <section id="devenir-prestataire" className="makolo-section scroll-mt-20 pb-16" aria-labelledby="prestataire-title">
+      <section id="devenir-prestataire" className="makalo-section scroll-mt-20 pb-16" aria-labelledby="prestataire-title">
         <div className="container">
           <div className="overflow-hidden rounded-2xl bg-nuit">
             <div className="grid gap-10 p-8 sm:p-10 lg:grid-cols-2 lg:p-14">

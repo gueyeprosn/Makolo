@@ -76,7 +76,7 @@ export function Footer() {
 
       <div className="border-t border-nuit-800">
         <div className="container flex flex-col items-center justify-between gap-3 py-5 text-sm text-nuit-200 sm:flex-row">
-          <p>© {year} MAKOLO. Tous droits réservés.</p>
+          <p>© {year} MAKALO. Tous droits réservés.</p>
           <div className="flex items-center gap-5">
             <span className="text-xs uppercase tracking-[0.16em]">Louez • Célébrez • Simplement</span>
             <Link to="/mentions-legales" className="transition-colors hover:text-orange">
