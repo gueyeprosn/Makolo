@@ -2,7 +2,7 @@
 
 # MAKALO
 
-**La plateforme de location de matériel événementiel au Sénégal.**
+**La plateforme événementielle du Sénégal — matériel et prestataires, au même endroit.**
 
 Louez • Célébrez • Simplement
 
@@ -29,19 +29,27 @@ Louez • Célébrez • Simplement
 
 ## 1. Présentation
 
-MAKALO est une marketplace qui met en relation les organisateurs d'événements et les loueurs
-de matériel événementiel au Sénégal : chaises, tables, tentes, sonorisation, éclairage,
-décoration et accessoires.
+MAKALO est une marketplace événementielle sénégalaise. Elle met en relation les organisateurs
+d'événements avec deux types d'offres, sur le même modèle :
+
+- **du matériel** : chaises, tables, tentes, sonorisation, éclairage, décoration, accessoires ;
+- **des prestataires de métiers de l'événementiel** : traiteurs, DJ, maîtres de cérémonie,
+  sécurité et gardes du corps, photographes et vidéastes, musiciens et groupes traditionnels,
+  personnel et hôtesses, transport événementiel, organisation (wedding planner), beauté et
+  coiffure.
 
 Le parcours est volontairement court :
 
 ```
-Accueil → Recherche → Catégorie → Annonce → Date → Quantité → Demande → Confirmation → Suivi
+Accueil → Recherche → Catégorie → Annonce → Période → Quantité → Demande → Confirmation → Suivi
 ```
 
-La plateforme ne gère **ni paiement ni livraison** : elle organise la découverte du matériel,
-la vérification de disponibilité et l'échange de la demande de réservation entre le client et
-le prestataire.
+La réservation porte sur une **période** (livraison → reprise), pas une date unique : une
+location d'un seul jour a simplement les deux mêmes dates.
+
+La plateforme ne gère **pas encore d'encaissement réel** (voir §12) et ne gère pas la
+livraison : elle organise la découverte, la vérification de disponibilité et le suivi de la
+demande entre le client et le prestataire.
 
 ---
 
@@ -59,8 +67,8 @@ le prestataire.
 ### Client
 - Inscription, connexion, mot de passe oublié, changement de mot de passe, session persistante.
 - Favoris (ajout/retrait avec mise à jour optimiste).
-- Demande de réservation : date, quantité, message — la quantité est confrontée au stock
-  réellement disponible à cette date.
+- Demande de réservation : période (livraison → reprise), quantité, message — la quantité est
+  confrontée à ce qui est réellement disponible sur toute la période, jour par jour.
 - Suivi des demandes par statut, annulation d'une demande en attente.
 - Notifications in-app (acceptation, refus).
 - Tableau de bord avec statistiques et gestion du profil.
@@ -103,7 +111,7 @@ le prestataire.
 
 ```
 src/
-├── assets/            Visuels générés (repli d'images, avatars)
+├── assets/            Visuels générés (repli d'images, avatars) + photos du hero
 ├── components/
 │   ├── ui/            Design system (Button, Input, Dialog, Toast, Skeleton…)
 │   ├── layout/        Header, Footer, navigation, notifications
@@ -139,6 +147,15 @@ Le backend de démonstration reproduit les mêmes règles que Supabase (contrôl
 transitions de statut autorisées, création automatique des notifications, calcul de
 disponibilité), afin que les parcours testés en local correspondent au comportement réel.
 
+### Le seul composant hors de la SPA : `supabase/functions/`
+
+Tout le reste de cette application est une SPA statique qui parle directement à Supabase avec
+la clé publique. La seule exception est `supabase/functions/payment-webhook/` : une fonction
+Edge (Deno) qui reçoit les webhooks de paiement Wave / Orange Money, vérifie leur signature
+avec un secret qui ne doit jamais atteindre le navigateur, et confirme un paiement via
+`service_role`. C'est une **fondation** — voir §12 — mais c'est un vrai composant serveur, pas
+un fichier de configuration inerte.
+
 ---
 
 ## 5. Installation
@@ -172,9 +189,10 @@ L'application démarre sur <http://localhost:5173> — sans configuration, en mo
 
 | Dossier | Contenu |
 |---|---|
-| `docs/` | Référence technique : produit, architecture, base de données, UX, sécurité, règles métier, feuille de route |
-| `tests/unit/` | Tests Vitest sur la logique pure (disponibilité, permissions, validations, formats sénégalais) |
-| `prisma/` | Schéma miroir pour la future couche serveur (paiement, WhatsApp, factures) — non branché à l'application actuelle, voir `prisma/README.md` |
+| `docs/` | Référence technique : produit, architecture, base de données, UX, sécurité, règles métier, feuille de route, et `docs/specs/` pour les chantiers non (ou partiellement) livrés |
+| `tests/unit/` | Tests Vitest sur la logique pure (disponibilité, chevauchement de périodes, permissions, validations, formats sénégalais, signature de webhook) |
+| `supabase/functions/` | Fonction Edge de réception des webhooks de paiement (fondation du chantier n°2) — voir son propre README |
+| `prisma/` | Schéma miroir pour la future couche serveur (WhatsApp, factures) — non branché à l'application actuelle, voir `prisma/README.md` |
 | `.claude/` | Règles, commandes et agents pour développer ce dépôt avec Claude Code |
 | `CLAUDE.md` | Point d'entrée du contexte d'ingénierie |
 
@@ -234,18 +252,28 @@ Dans **SQL Editor → New query**, exécutez dans l'ordre :
 Les scripts sont idempotents : ils peuvent être rejoués sans erreur.
 
 **Ce que met en place `01_schema.sql` :**
-- 7 tables : `profiles`, `categories`, `listings`, `listing_images`, `favorites`,
-  `booking_requests`, `notifications`.
+- 8 tables : `profiles`, `categories`, `listings`, `listing_images`, `favorites`,
+  `booking_requests`, `notifications`, `payment_events`.
+- `booking_requests` porte une **période** (`requested_from`/`requested_to`, bornes incluses —
+  une location d'un jour a `from = to`), pas une date unique. Une contrainte d'exclusion GiST
+  (extension `btree_gist`) empêche nativement deux demandes en attente du même client, sur la
+  même annonce, dont les périodes se chevauchent — y compris sous concurrence.
 - Les index demandés sur `listings` (catégorie, prestataire, ville, statut, date, prix),
-  `booking_requests` (annonce, client, prestataire, statut) et `favorites` (utilisateur, annonce),
-  plus un index GIN de recherche plein texte française.
+  `booking_requests` (annonce, statut, période) et `favorites` (utilisateur, annonce), plus un
+  index GIN de recherche plein texte française.
 - `handle_new_user()` : crée le profil à l'inscription et **force le rôle à `client` ou
   `provider`** — le rôle `admin` ne peut jamais être obtenu par auto-inscription.
-- `listing_availability(listing_id, date)` : fonction `security definer` qui renvoie
-  **uniquement des agrégats**, permettant à un client de connaître le stock restant sans lire
-  les demandes des autres utilisateurs.
-- `check_booking_capacity()` : refuse côté serveur toute acceptation dépassant le stock.
+- `listing_availability(listing_id, from, to)` : fonction `security definer` qui renvoie
+  **uniquement des agrégats**, calculés jour par jour sur la période demandée, permettant à un
+  client de connaître le stock restant sans lire les demandes des autres utilisateurs.
+- `check_booking_capacity()` : refuse côté serveur toute acceptation dépassant le stock
+  réellement disponible sur la période, jour par jour.
 - Triggers de notification : demande créée, statut modifié, annonce publiée ou refusée.
+- Fondation de l'acompte (chantier n°2, voir §12) : `payment_status`, `payment_provider`,
+  `deposit_amount`, `payment_reference` sur `booking_requests`, verrouillés au niveau colonne
+  (`REVOKE`/`GRANT`) — aucun compte `authenticated`, administrateur inclus, ne peut les écrire ;
+  seul `service_role` le peut. `payment_events` journalise chaque webhook reçu, avec une
+  contrainte d'idempotence `UNIQUE (provider, provider_event_id)`.
 
 ### 8.3 Authentification
 
@@ -308,7 +336,9 @@ l'interface ; chaque règle possède son équivalent en policy RLS.
 | Un utilisateur ne change ni son rôle ni son statut | `profiles_update_own` compare aux valeurs existantes |
 | Personne ne fabrique de notification | Aucune policy `insert` : seuls les triggers écrivent |
 | Un prestataire n'écrit pas dans le dossier d'un autre | Policy Storage sur `storage.foldername(name)[1]` |
-| On n'accepte jamais plus que le stock | Trigger `check_booking_capacity()` |
+| On n'accepte jamais plus que le stock, sur toute la période demandée | Trigger `check_booking_capacity()` (agrégation jour par jour) |
+| Deux demandes en attente ne peuvent pas se chevaucher (même client, même annonce) | Contrainte d'exclusion GiST `bookings_no_duplicate_pending` |
+| Personne (client, prestataire, **administrateur inclus**) ne confirme un paiement | Verrou colonne (`REVOKE`/`GRANT`) sur `payment_status` et les champs associés — seul `service_role` peut écrire |
 
 Autres points :
 - Validation Zod sur tous les formulaires, doublée des contraintes `check` SQL.
@@ -364,23 +394,36 @@ installable — volontairement non fait pour ne pas alourdir le MVP.
 
 ## 12. Périmètre du MVP
 
-**Hors périmètre, volontairement non implémenté :** paiement en ligne (Wave, Orange Money,
-carte bancaire), facturation, chat temps réel, SMS, notifications push, GPS et suivi de
-livraison, commissions, IA, enchères.
+**Encaissement d'acompte — fondation livrée, pas encore fonctionnelle.** Le schéma
+(`payment_status`, `payment_events`), le verrouillage RLS et une fonction Edge
+(`supabase/functions/payment-webhook/`) qui vérifie réellement une signature Wave existent.
+**Aucun compte marchand Wave / Orange Money réel n'est branché** : aucun encaissement n'est
+possible aujourd'hui, et aucune interface de paiement n'existe côté client (un bouton « Payer »
+sans rien de réel derrière serait une simulation — voir la règle d'or de `CLAUDE.md`). Détail
+de ce qui manque : `docs/specs/PAYMENT-FLOW.md` et le README de la fonction Edge.
+
+**Hors périmètre, volontairement non implémenté :** facturation, chat temps réel, notifications
+WhatsApp/SMS, notifications push, GPS et suivi de livraison, commissions, avis et notes, IA,
+enchères.
 
 L'architecture reste ouverte à ces ajouts : la couche `services/` est contractualisée par une
 interface, les statuts de réservation sont extensibles, et le schéma SQL peut accueillir des
-tables `payments`, `messages`, `deliveries` ou `reviews` sans remaniement.
+tables `messages`, `deliveries` ou `reviews` sans remaniement. L'ordre de priorité recommandé
+(et pourquoi) est détaillé dans `docs/ROADMAP.md`.
 
 ### Prochaines étapes recommandées
 
-1. Renseigner les mentions légales (raison sociale, NINEA/RCCM, contact).
-2. Ajouter des avis et notes après une location terminée — premier signal de confiance
-   réellement mesurable.
-3. Prévoir un statut `completed` pour clôturer une location honorée.
-4. Ajouter un service worker pour l'installation mobile (PWA).
-5. Mettre en place des tests automatisés (Vitest + Playwright) sur les parcours critiques.
-6. Ajouter un suivi d'erreurs en production (Sentry ou équivalent).
+1. Obtenir un compte marchand Wave et/ou Orange Money pour rendre l'acompte réellement
+   fonctionnel (l'essentiel du travail technique est déjà en place, voir ci-dessus).
+2. Renseigner les mentions légales (raison sociale, NINEA/RCCM, contact).
+3. Notifications WhatsApp Business : l'e-mail ne porte pas au Sénégal (chantier n°3).
+4. Ajouter des avis et notes après une location terminée — premier signal de confiance
+   réellement mesurable (chantier n°4, suppose un statut `completed` sur la demande).
+5. Ajouter un service worker pour l'installation mobile (PWA).
+6. Mettre en place des tests automatisés Playwright sur les parcours critiques (les audits RLS
+   et les vérifications de bout en bout de ce dépôt ont jusqu'ici été faits à la demande, pas
+   en intégration continue).
+7. Ajouter un suivi d'erreurs en production (Sentry ou équivalent).
 
 ---
 
