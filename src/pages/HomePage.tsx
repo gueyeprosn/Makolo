@@ -5,6 +5,7 @@ import {
   CalendarCheck,
   CheckCircle2,
   MapPin,
+  MessageCircleMore,
   Search,
   ShieldCheck,
   Sparkles,
@@ -21,12 +22,34 @@ import { CategoryCard, categoryIcon } from '@/components/listings/CategoryCard';
 import { ListingCard } from '@/components/listings/ListingCard';
 import { useCategories, useListings } from '@/hooks/use-listings';
 import { useDocumentTitle } from '@/hooks/use-document-title';
+import { placeholderFor } from '@/assets/placeholders';
 import { CITIES } from '@/constants';
 
 const ANY_CITY = '__any_city__';
 const ANY_CATEGORY = '__any_category__';
 
-const QUICK_FILTERS = ['chaises', 'tables', 'tentes', 'sono', 'eclairage'] as const;
+const TRUST_POINTS = [
+  {
+    icon: ShieldCheck,
+    title: 'Annonces vérifiées',
+    description: 'Chaque annonce est validée par notre équipe avant sa publication sur la marketplace.',
+  },
+  {
+    icon: CalendarCheck,
+    title: 'Disponibilité vérifiée',
+    description: "Le stock réellement disponible s'affiche sur la période exacte de votre événement.",
+  },
+  {
+    icon: MessageCircleMore,
+    title: 'Demandes suivies de bout en bout',
+    description: 'Statut en temps réel, notifications à chaque réponse du prestataire.',
+  },
+  {
+    icon: Store,
+    title: 'Devenez prestataire',
+    description: 'Création de compte et publication de vos annonces gratuites, en quelques minutes.',
+  },
+];
 
 const STEPS = [
   {
@@ -76,149 +99,182 @@ export function HomePage() {
   return (
     <>
       {/* ---------------------------------------------------------------- Hero */}
-      <section className="relative overflow-hidden bg-ivoire">
+      <section className="relative overflow-hidden bg-nuit">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-24 -top-24 size-80 rounded-full bg-orange/10 blur-2xl"
+          className="pointer-events-none absolute -right-24 -top-24 size-80 rounded-full bg-orange/20 blur-3xl"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -bottom-32 -left-20 size-96 rounded-full bg-nuit/5 blur-2xl"
+          className="pointer-events-none absolute -bottom-40 -left-24 size-96 rounded-full bg-white/5 blur-3xl"
         />
 
-        <div className="container relative py-14 sm:py-20 lg:py-24">
-          <div className="max-w-3xl">
-            <Badge variant="orange" className="mb-5">
-              <Sparkles aria-hidden="true" />
-              Louez • Célébrez • Simplement
-            </Badge>
+        <div className="container relative pb-24 pt-14 sm:pb-28 sm:pt-20 lg:pb-32 lg:pt-24">
+          <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-16">
+            <div className="max-w-xl">
+              <Badge variant="orange" className="mb-5 border-transparent bg-orange text-white">
+                <Sparkles aria-hidden="true" />
+                Louez • Célébrez • Simplement
+              </Badge>
 
-            <h1 className="makalo-h1">Tout ce qu'il vous faut pour vos événements.</h1>
+              <h1 className="makalo-h1 text-white">Tout ce qu'il vous faut pour vos événements.</h1>
 
-            <p className="mt-5 max-w-2xl text-base leading-relaxed text-doux-600 sm:text-lg">
-              Trouvez et réservez facilement du matériel événementiel auprès de prestataires au Sénégal.
-            </p>
+              <p className="mt-5 max-w-lg text-base leading-relaxed text-nuit-100 sm:text-lg">
+                Trouvez et réservez facilement du matériel événementiel auprès de prestataires au Sénégal.
+              </p>
 
-            <form
-              onSubmit={handleSearch}
-              role="search"
-              className="mt-8 max-w-3xl rounded-2xl border border-doux-200 bg-white p-2.5 shadow-pop sm:p-3"
-            >
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:divide-x sm:divide-doux-200">
-                <div className="relative flex-[1.8]">
-                  <label htmlFor="hero-search" className="sr-only">
-                    Que recherchez-vous ?
-                  </label>
-                  <Search
-                    className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-doux"
-                    aria-hidden="true"
-                  />
-                  <Input
-                    id="hero-search"
-                    type="search"
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Chaises, tentes..."
-                    className="h-12 border-0 pl-10 shadow-none focus-visible:ring-0"
-                  />
-                </div>
-
-                <div className="flex-[0.9] sm:pl-2">
-                  <label htmlFor="hero-city" className="sr-only">
-                    Où ?
-                  </label>
-                  <Select value={city} onValueChange={setCity}>
-                    <SelectTrigger id="hero-city" className="h-12 border-0 shadow-none focus:ring-0">
-                      <MapPin className="size-4 shrink-0 text-doux" aria-hidden="true" />
-                      <SelectValue placeholder="Où ?" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={ANY_CITY}>Ville</SelectItem>
-                      {CITIES.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {c}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex-[0.9] sm:pl-2">
-                  <label htmlFor="hero-category" className="sr-only">
-                    Catégorie
-                  </label>
-                  <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger id="hero-category" className="h-12 border-0 shadow-none focus:ring-0">
-                      <SelectValue placeholder="Catégorie" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={ANY_CATEGORY}>Catégorie</SelectItem>
-                      {(categoriesQuery.data ?? []).map((cat) => (
-                        <SelectItem key={cat.id} value={cat.slug}>
-                          {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Button type="submit" variant="accent" size="lg" className="h-12 sm:w-auto">
-                  <Search className="size-4 sm:hidden" aria-hidden="true" />
-                  Rechercher
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Button asChild variant="accent" size="lg">
+                  <Link to="/materiel">
+                    Voir le matériel
+                    <ArrowRight className="size-4" aria-hidden="true" />
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="lg"
+                  className="border-nuit-400 bg-transparent text-white hover:bg-white hover:text-nuit"
+                >
+                  <Link to="/inscription?role=prestataire">Publier une offre</Link>
                 </Button>
               </div>
-            </form>
 
-            <p className="mt-3 text-sm text-doux">
-              La disponibilité exacte à la date de votre événement se vérifie sur chaque annonce.
-            </p>
+              <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-nuit-100">
+                <li className="inline-flex items-center gap-1.5">
+                  <MapPin className="size-4 text-orange" aria-hidden="true" />
+                  {CITIES.length} villes couvertes
+                </li>
+                <li className="inline-flex items-center gap-1.5">
+                  <CalendarCheck className="size-4 text-orange" aria-hidden="true" />
+                  Disponibilité vérifiée par période
+                </li>
+              </ul>
+            </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="text-sm font-medium text-doux">Recherches fréquentes :</span>
-              {QUICK_FILTERS.map((slug) => {
-                const Icon = categoryIcon(slug);
+            {/* Collage d'illustrations de la marque — jamais de photo de stock
+                générique sans rapport avec le matériel (voir src/assets/placeholders.ts). */}
+            <div className="relative mx-auto hidden aspect-[4/3] w-full max-w-md lg:block" aria-hidden="true">
+              <img
+                src={placeholderFor('tentes')}
+                alt=""
+                className="absolute left-2 top-0 w-[68%] -rotate-2 rounded-3xl border-[6px] border-white shadow-pop"
+              />
+              <img
+                src={placeholderFor('sono')}
+                alt=""
+                className="absolute bottom-0 right-0 w-[52%] rotate-3 rounded-3xl border-[6px] border-white shadow-pop"
+              />
+              <img
+                src={placeholderFor('decoration')}
+                alt=""
+                className="absolute bottom-6 left-0 w-[38%] -rotate-6 rounded-2xl border-4 border-white shadow-card"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Carte de recherche : chevauche volontairement le bas du hero. */}
+      <div className="container relative z-10 -mt-14 sm:-mt-16">
+        <form
+          onSubmit={handleSearch}
+          role="search"
+          className="mx-auto max-w-3xl rounded-2xl border border-doux-200 bg-white p-2.5 shadow-pop sm:p-3"
+        >
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:divide-x sm:divide-doux-200">
+            <div className="relative flex-[1.8]">
+              <label htmlFor="hero-search" className="sr-only">
+                Que recherchez-vous ?
+              </label>
+              <Search
+                className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-doux"
+                aria-hidden="true"
+              />
+              <Input
+                id="hero-search"
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Chaises, tentes..."
+                className="h-12 border-0 pl-10 shadow-none focus-visible:ring-0"
+              />
+            </div>
+
+            <div className="flex-[0.9] sm:pl-2">
+              <label htmlFor="hero-city" className="sr-only">
+                Où ?
+              </label>
+              <Select value={city} onValueChange={setCity}>
+                <SelectTrigger id="hero-city" className="h-12 border-0 shadow-none focus:ring-0">
+                  <MapPin className="size-4 shrink-0 text-doux" aria-hidden="true" />
+                  <SelectValue placeholder="Où ?" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ANY_CITY}>Ville</SelectItem>
+                  {CITIES.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex-[0.9] sm:pl-2">
+              <label htmlFor="hero-category" className="sr-only">
+                Catégorie
+              </label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger id="hero-category" className="h-12 border-0 shadow-none focus:ring-0">
+                  <SelectValue placeholder="Catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ANY_CATEGORY}>Catégorie</SelectItem>
+                  {(categoriesQuery.data ?? []).map((cat) => (
+                    <SelectItem key={cat.id} value={cat.slug}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button type="submit" variant="accent" size="lg" className="h-12 sm:w-auto">
+              <Search className="size-4 sm:hidden" aria-hidden="true" />
+              Rechercher
+            </Button>
+          </div>
+        </form>
+        <p className="mt-3 text-center text-sm text-doux">
+          La disponibilité exacte sur la période de votre événement se vérifie sur chaque annonce.
+        </p>
+      </div>
+
+      {/* ------------------------------------------------- Bandeau catégories */}
+      {categoriesQuery.data && categoriesQuery.data.length > 0 && (
+        <nav aria-label="Parcourir par catégorie" className="border-b border-doux-200 bg-white">
+          <div className="container">
+            <div className="flex gap-7 overflow-x-auto py-6 sm:justify-center sm:gap-10" style={{ scrollbarWidth: 'none' }}>
+              {categoriesQuery.data.map((cat) => {
+                const Icon = categoryIcon(cat.slug);
                 return (
                   <Link
-                    key={slug}
-                    to={`/materiel?categorie=${slug}`}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-doux-200 bg-white px-3 py-1.5 text-sm font-medium text-nuit transition-colors hover:border-orange-200 hover:bg-orange-50"
+                    key={cat.id}
+                    to={`/materiel?categorie=${cat.slug}`}
+                    className="group flex shrink-0 flex-col items-center gap-2 text-doux-500 transition-colors hover:text-nuit"
                   >
-                    <Icon className="size-3.5" aria-hidden="true" />
-                    {slug === 'eclairage' ? 'Éclairage' : slug.charAt(0).toUpperCase() + slug.slice(1)}
+                    <span className="flex size-11 items-center justify-center rounded-full bg-ivoire text-nuit transition-colors group-hover:bg-orange group-hover:text-white">
+                      <Icon className="size-5" aria-hidden="true" />
+                    </span>
+                    <span className="whitespace-nowrap text-xs font-semibold">{cat.name}</span>
                   </Link>
                 );
               })}
             </div>
-
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button asChild size="lg">
-                <Link to="/materiel">
-                  Voir le matériel
-                  <ArrowRight className="size-4" aria-hidden="true" />
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg">
-                <Link to="/inscription?role=prestataire">Publier une offre</Link>
-              </Button>
-            </div>
-
-            <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-doux">
-              <li className="inline-flex items-center gap-1.5">
-                <MapPin className="size-4 text-orange" aria-hidden="true" />
-                {CITIES.length} villes couvertes
-              </li>
-              <li className="inline-flex items-center gap-1.5">
-                <CalendarCheck className="size-4 text-orange" aria-hidden="true" />
-                Disponibilité vérifiée par date
-              </li>
-              <li className="inline-flex items-center gap-1.5">
-                <ShieldCheck className="size-4 text-orange" aria-hidden="true" />
-                Demandes suivies de bout en bout
-              </li>
-            </ul>
           </div>
-        </div>
-      </section>
+        </nav>
+      )}
 
       {/* --------------------------------------------------------- Catégories */}
       <section className="makalo-section" aria-labelledby="categories-title">
@@ -290,6 +346,19 @@ export function HomePage() {
               Aucune offre n'est encore publiée. Revenez très bientôt.
             </p>
           )}
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------- Réassurance */}
+      <section className="border-y border-doux-200 bg-white py-10 sm:py-12" aria-label="Pourquoi MAKALO">
+        <div className="container grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          {TRUST_POINTS.map((point) => (
+            <div key={point.title} className="flex flex-col items-start gap-3">
+              <point.icon className="size-7 text-orange" aria-hidden="true" />
+              <h3 className="text-sm font-bold text-nuit">{point.title}</h3>
+              <p className="text-sm leading-relaxed text-doux">{point.description}</p>
+            </div>
+          ))}
         </div>
       </section>
 
