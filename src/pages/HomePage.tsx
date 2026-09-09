@@ -22,8 +22,9 @@ import { CategoryCard, categoryIcon } from '@/components/listings/CategoryCard';
 import { ListingCard } from '@/components/listings/ListingCard';
 import { useCategories, useListings } from '@/hooks/use-listings';
 import { useDocumentTitle } from '@/hooks/use-document-title';
-import { placeholderFor } from '@/assets/placeholders';
 import { CITIES } from '@/constants';
+import heroCloseup from '@/assets/hero/hero-event-closeup.jpg';
+import heroWide from '@/assets/hero/hero-event-wide.jpg';
 
 const ANY_CITY = '__any_city__';
 const ANY_CATEGORY = '__any_category__';
@@ -152,23 +153,21 @@ export function HomePage() {
               </ul>
             </div>
 
-            {/* Collage d'illustrations de la marque — jamais de photo de stock
-                générique sans rapport avec le matériel (voir src/assets/placeholders.ts). */}
-            <div className="relative mx-auto hidden aspect-[4/3] w-full max-w-md lg:block" aria-hidden="true">
+            <div className="relative mx-auto w-full max-w-lg">
               <img
-                src={placeholderFor('tentes')}
-                alt=""
-                className="absolute left-2 top-0 w-[68%] -rotate-2 rounded-3xl border-[6px] border-white shadow-pop"
+                src={heroWide}
+                alt="Tente de réception, chaises et guirlandes lumineuses installées pour un événement en soirée"
+                className="aspect-[16/9] w-full rounded-3xl object-cover shadow-pop"
+                width={1376}
+                height={768}
               />
               <img
-                src={placeholderFor('sono')}
+                src={heroCloseup}
                 alt=""
-                className="absolute bottom-0 right-0 w-[52%] rotate-3 rounded-3xl border-[6px] border-white shadow-pop"
-              />
-              <img
-                src={placeholderFor('decoration')}
-                alt=""
-                className="absolute bottom-6 left-0 w-[38%] -rotate-6 rounded-2xl border-4 border-white shadow-card"
+                aria-hidden="true"
+                width={1200}
+                height={896}
+                className="absolute -bottom-8 -left-6 hidden aspect-[4/3] w-56 rounded-2xl border-4 border-white object-cover shadow-pop sm:w-64 lg:block"
               />
             </div>
           </div>
