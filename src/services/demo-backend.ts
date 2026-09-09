@@ -755,6 +755,13 @@ export const demoBackend: MakaloBackend = {
       quantity: input.quantity,
       message: input.message?.trim() || null,
       status: 'pending',
+      // Fondation du chantier n°2 (docs/specs/PAYMENT-FLOW.md) : aucun
+      // compte marchand n'est branché, ce champ ne bouge jamais en mode
+      // démo — seul un vrai webhook (hors de cette SPA) le ferait.
+      payment_status: 'none',
+      payment_provider: null,
+      deposit_amount: null,
+      payment_reference: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

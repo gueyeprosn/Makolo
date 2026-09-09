@@ -15,15 +15,16 @@ cloisonnement entre prestataires tomberaient d'un coup.
 
 ## À quoi il servira
 
-Un service Node distinct (Fastify, Express ou route API Next.js), qui portera ce
-que le navigateur ne peut pas faire :
+Un service serveur — Node distinct (Fastify, Express, route API Next.js) ou
+fonction Edge Supabase selon le besoin — qui portera ce que le navigateur ne
+peut pas faire :
 
-| Besoin | Pourquoi côté serveur |
-|---|---|
-| Webhooks Wave / Orange Money | La signature du webhook doit être vérifiée avec un secret jamais exposé |
-| Messages WhatsApp Business | Jeton d'API confidentiel |
-| Factures PDF (NINEA / TVA) | Numérotation séquentielle fiable, archivage légal |
-| Relances et rapprochements | Tâches planifiées, hors session utilisateur |
+| Besoin | Pourquoi côté serveur | Statut |
+|---|---|---|
+| Webhooks Wave / Orange Money | La signature du webhook doit être vérifiée avec un secret jamais exposé | Fondation livrée en fonction Edge Supabase — `supabase/functions/payment-webhook/` (voir son README) ; aucun compte marchand réel branché |
+| Messages WhatsApp Business | Jeton d'API confidentiel | Non commencé (chantier n°3) |
+| Factures PDF (NINEA / TVA) | Numérotation séquentielle fiable, archivage légal | Non commencé (chantier n°6) |
+| Relances et rapprochements | Tâches planifiées, hors session utilisateur | Non commencé |
 
 ## Règle d'évolution du schéma
 

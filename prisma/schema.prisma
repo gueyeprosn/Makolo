@@ -78,6 +78,20 @@ enum BookingStatus {
   @@schema("public")
 }
 
+// Chaîne d'argent séparée de BookingStatus (chaîne d'engagement) — voir
+// docs/specs/PAYMENT-FLOW.md. Fondation du chantier n°2 uniquement : aucun
+// compte marchand Wave/Orange Money réel n'est branché.
+enum PaymentStatus {
+  none
+  pending
+  paid
+  failed
+  refunded
+
+  @@map("payment_status")
+  @@schema("public")
+}
+
 enum PriceUnit {
   jour
   evenement
@@ -232,12 +246,23 @@ model BookingRequest {
   quantity      Int
   message       String?
   status        BookingStatus @default(pending)
-  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  // Acompte (chantier n°2, docs/specs/PAYMENT-FLOW.md) : fondation de schéma
+  // uniquement, jamais écrite depuis cette SPA. RLS interdit au niveau
+  // colonne à `authenticated` d'écrire ces quatre champs (scripts/sql/02_rls.sql)
+  // — seul le service serveur qui traite les webhooks Wave/Orange Money le
+  // peut. Aucun compte marchand réel n'est branché aujourd'hui.
+  paymentStatus    PaymentStatus @default(none) @map("payment_status")
+  paymentProvider  String?       @map("payment_provider")
+  depositAmount    Int?          @map("deposit_amount")
+  paymentReference String?       @map("payment_reference")
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   listing  Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
   client   Profile @relation("BookingClient", fields: [clientId], references: [id], onDelete: Cascade)
   provider Profile @relation("BookingProvider", fields: [providerId], references: [id], onDelete: Cascade)
+
+  paymentEvents PaymentEvent[]
 
   @@index([listingId])
   @@index([clientId])
@@ -245,6 +270,32 @@ model BookingRequest {
   @@index([status])
   @@index([listingId, status, requestedFrom, requestedTo])
   @@map("booking_requests")
+  @@schema("public")
+}
+
+// Journal des webhooks de paiement (chantier n°2). Écrit exclusivement par
+// `service_role` — voir scripts/sql/01_schema.sql et 02_rls.sql. Un
+// administrateur peut le lire pour instruire un litige ; ni le client ni le
+// prestataire n'y ont accès (leur `paymentStatus` sur BookingRequest suffit).
+model PaymentEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+  bookingId       String?  @map("booking_id") @db.Uuid
+  provider        String
+  providerEventId String   @map("provider_event_id")
+  eventType       String   @map("event_type")
+  amount          Int?
+  currency        String?
+  outcome         String
+  rejectionReason String?  @map("rejection_reason")
+  rawPayload      Json     @map("raw_payload")
+  receivedAt      DateTime @default(now()) @map("received_at") @db.Timestamptz(6)
+
+  booking BookingRequest? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, providerEventId], map: "payment_events_idempotent")
+  @@index([bookingId])
+  @@index([receivedAt(sort: Desc)])
+  @@map("payment_events")
   @@schema("public")
 }
 

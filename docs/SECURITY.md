@@ -108,21 +108,49 @@ affichage ; le détail (code Postgres, stack) n'est journalisé qu'en
 développement (`import.meta.env.DEV`). Un code comme `PostgrestError 23505` ne
 doit jamais atteindre l'écran.
 
-## Ce qui reste à faire avant un vrai encaissement
+## Acompte (chantier n°2) : fondation livrée, encaissement réel pas encore
 
-Le jour où un webhook de paiement (Wave / Orange Money) sera introduit — voir
-`ROADMAP.md` — il devra respecter, sans exception :
+`docs/specs/PAYMENT-FLOW.md` détaille le flux visé. Ce qui est réellement
+construit dans ce dépôt, et vérifié sur PostgreSQL réel :
 
-1. Vérification de signature **côté serveur**, avec un secret qui ne transite
-   jamais par le client ni par une variable `VITE_*`.
-2. Idempotence : un même événement rejoué ne doit pas créditer deux fois.
-3. Journalisation de chaque webhook reçu, y compris rejeté.
-4. Aucune confirmation de paiement acceptée depuis le frontend seul — le
-   frontend affiche un état, il ne le décrète pas.
+1. **Vérification de signature côté serveur** —
+   `supabase/functions/payment-webhook/signature.ts`, une fonction Edge
+   Supabase (Deno), jamais dans le navigateur. Le secret de webhook n'existe
+   que dans les variables d'environnement de cette fonction, jamais sous un
+   nom `VITE_*`. Testé par `tests/unit/payment-webhook-signature.test.ts`
+   avec de vraies signatures HMAC-SHA256.
+2. **Idempotence** — contrainte `UNIQUE (provider, provider_event_id)` sur
+   `payment_events` : un même événement rejoué ne peut pas être traité deux
+   fois, garanti par Postgres et pas seulement par une vérification
+   applicative.
+3. **Journalisation systématique** — chaque webhook, accepté ou rejeté, est
+   inséré dans `payment_events` avant tout autre effet.
+4. **Aucune confirmation de paiement depuis le frontend** — verrouillé au
+   niveau colonne, pas seulement par une policy RLS contournable en théorie
+   par une erreur de logique métier : `authenticated` n'a **aucun** privilège
+   `UPDATE`/`INSERT` sur `payment_status`, `payment_provider`,
+   `deposit_amount`, `payment_reference` de `booking_requests` (`REVOKE`/
+   `GRANT` colonne par colonne dans `02_rls.sql`) — un administrateur inclus,
+   puisque `role = 'admin'` est une donnée dans `profiles`, pas un rôle
+   Postgres distinct. Seul `service_role` (utilisé exclusivement par la
+   fonction Edge) peut écrire ces colonnes.
 
-C'est la même philosophie que RLS aujourd'hui, appliquée à un nouveau
-sous-système : la confirmation vient toujours d'un endroit que l'utilisateur
-ne contrôle pas.
+Vérifié par des transactions de rôle sur PostgreSQL réel : un client ne peut
+ni insérer ni mettre à jour ces colonnes, un administrateur non plus, un
+rejeu du même `provider_event_id` est rejeté par la contrainte, et
+`service_role` peut écrire ces colonnes normalement.
+
+**Ce qui manque encore avant un vrai encaissement** (voir aussi
+`supabase/functions/payment-webhook/README.md`) : un compte marchand
+Wave/Orange Money réel et ses secrets, l'endpoint de création d'intention de
+paiement (calcule `deposit_amount`, ouvre la session de paiement, pose
+`payment_reference`), la confirmation du schéma exact des webhooks Orange
+Money, et le séquestre/reversement au prestataire. Sans le compte marchand,
+`payment_status` ne quitte jamais `none` — ce n'est pas simulé pour paraître
+plus avancé que ça.
+
+C'est la même philosophie que RLS ailleurs dans cette base : la confirmation
+vient toujours d'un endroit que l'utilisateur ne contrôle pas.
 
 ## Vérifications à refaire après toute modification de RLS
 
@@ -145,4 +173,17 @@ ne contrôle pas.
      y compris en cas d'insertions concurrentes (contrairement à une
      vérification applicative seule, la contrainte est portée par Postgres) ;
    - client → date de début antérieure à aujourd'hui → refusé par
-     `bookings_insert_client` (`requested_from >= current_date`).
+     `bookings_insert_client` (`requested_from >= current_date`) ;
+   - client, prestataire concerné, **et administrateur** → écriture directe
+     de `payment_status`/`payment_provider`/`deposit_amount`/
+     `payment_reference` sur une demande, à l'insertion ou à la mise à jour →
+     refusé (`permission denied for table booking_requests`, verrou colonne,
+     pas seulement RLS) ;
+   - `service_role` → écriture de ces mêmes colonnes → autorisé (c'est la
+     seule voie légitime, utilisée par
+     `supabase/functions/payment-webhook/`) ;
+   - client, prestataire → lecture de `payment_events` → 0 ligne ; admin →
+     lecture autorisée ;
+   - `service_role` → deux insertions dans `payment_events` avec le même
+     `(provider, provider_event_id)` → la seconde est rejetée par la
+     contrainte `payment_events_idempotent`.

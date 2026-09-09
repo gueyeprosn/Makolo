@@ -9,6 +9,17 @@ export type ListingStatus = 'draft' | 'pending' | 'published' | 'archived' | 're
 
 export type BookingStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled';
 
+/**
+ * Chaîne d'argent, séparée de `BookingStatus` (chaîne d'engagement) — voir
+ * docs/specs/PAYMENT-FLOW.md. `none` est la valeur de toute demande
+ * aujourd'hui : le chantier n°2 n'est qu'une fondation, aucun compte
+ * marchand Wave/Orange Money réel n'est branché, donc rien ne fait jamais
+ * transitionner cette valeur en dehors d'un webhook réel.
+ */
+export type PaymentStatus = 'none' | 'pending' | 'paid' | 'failed' | 'refunded';
+
+export type PaymentProvider = 'wave' | 'orange_money';
+
 export type PriceUnit = 'jour' | 'evenement' | 'unite' | 'heure' | 'semaine';
 
 export type NotificationType =
@@ -114,6 +125,16 @@ export interface BookingRequest {
   quantity: number;
   message: string | null;
   status: BookingStatus;
+  /**
+   * Champs en lecture seule pour le frontend : ils ne sont jamais écrits
+   * par un client authentifié (RLS le refuse au niveau colonne, voir
+   * scripts/sql/02_rls.sql), seulement par le service serveur qui traite
+   * les webhooks Wave/Orange Money.
+   */
+  payment_status: PaymentStatus;
+  payment_provider: PaymentProvider | null;
+  deposit_amount: number | null;
+  payment_reference: string | null;
   created_at: string;
   updated_at: string;
 }

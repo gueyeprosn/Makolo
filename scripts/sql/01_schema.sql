@@ -28,6 +28,13 @@ begin
   if not exists (select 1 from pg_type where typname = 'booking_status') then
     create type public.booking_status as enum ('pending', 'accepted', 'rejected', 'cancelled');
   end if;
+  -- Chaîne d'engagement (`booking_status`) et chaîne d'argent
+  -- (`payment_status`) restent deux machines d'état séparées : un échec de
+  -- paiement ne doit jamais forcer une transition de réservation invalide.
+  -- Voir docs/specs/PAYMENT-FLOW.md.
+  if not exists (select 1 from pg_type where typname = 'payment_status') then
+    create type public.payment_status as enum ('none', 'pending', 'paid', 'failed', 'refunded');
+  end if;
   if not exists (select 1 from pg_type where typname = 'price_unit') then
     create type public.price_unit as enum ('jour', 'evenement', 'unite', 'heure', 'semaine');
   end if;
@@ -272,6 +279,14 @@ create table if not exists public.booking_requests (
   quantity       integer not null check (quantity >= 1),
   message        text check (message is null or char_length(message) <= 600),
   status         public.booking_status not null default 'pending',
+  -- Acompte (chantier n°2, docs/specs/PAYMENT-FLOW.md) : chaîne d'argent
+  -- séparée de `status`, jamais écrite par un client authentifié (voir les
+  -- GRANT/REVOKE colonne par colonne dans 02_rls.sql) — seul le service
+  -- serveur qui traite les webhooks Wave / Orange Money peut la modifier.
+  payment_status    public.payment_status not null default 'none',
+  payment_provider  text check (payment_provider is null or payment_provider in ('wave', 'orange_money')),
+  deposit_amount    integer check (deposit_amount is null or deposit_amount >= 0),
+  payment_reference text,
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now(),
   -- Un client ne peut pas être son propre prestataire.
@@ -288,6 +303,10 @@ create index if not exists bookings_status_idx   on public.booking_requests (sta
 -- listing_id et status, puis parcours par intervalle sur les dates.
 create index if not exists bookings_range_idx
   on public.booking_requests (listing_id, status, requested_from, requested_to);
+-- Un identifiant de transaction fourni par le provider ne doit jamais être
+-- réutilisé pour deux demandes différentes.
+create unique index if not exists bookings_payment_reference_idx
+  on public.booking_requests (payment_reference) where payment_reference is not null;
 
 -- Empêche deux demandes EN ATTENTE du même client, sur la même annonce, avec
 -- des périodes qui se chevauchent (pas seulement une date identique : deux
@@ -636,3 +655,47 @@ drop trigger if exists listings_enforce_status on public.listings;
 create trigger listings_enforce_status
   before update on public.listings
   for each row execute function public.enforce_listing_status_transition();
+
+-- ---------------------------------------------------------------------------
+-- 16. Table `payment_events` — journal des webhooks de paiement
+--
+-- Chantier n°2 (docs/ROADMAP.md, docs/specs/PAYMENT-FLOW.md) : fondation
+-- seule dans ce dépôt — aucun compte marchand Wave / Orange Money réel n'est
+-- branché. Cette table journalise CHAQUE webhook reçu, accepté ou rejeté,
+-- avant même de savoir s'il est légitime : sans cette trace, un litige de
+-- paiement ne peut pas être instruit.
+--
+-- Écrite exclusivement par le rôle `service_role` (la fonction Edge qui
+-- reçoit les webhooks, jamais le navigateur) : RLS n'autorise même pas la
+-- lecture à `anon`/`authenticated`, sur le même principe que `notifications`
+-- (aucune policy d'insertion pour ces rôles — voir 02_rls.sql).
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.payment_events (
+  id                uuid primary key default gen_random_uuid(),
+  -- `set null` plutôt que `cascade` : l'événement doit survivre même si la
+  -- demande qu'il concernait disparaît, pour rester consultable en cas de
+  -- litige (voir plus haut).
+  booking_id        uuid references public.booking_requests(id) on delete set null,
+  provider          text not null check (provider in ('wave', 'orange_money')),
+  provider_event_id text not null,
+  event_type        text not null,
+  amount            integer,
+  currency          text,
+  -- Résultat de notre propre traitement du webhook, pas celui du provider :
+  -- 'accepted' si toutes les vérifications de PAYMENT-FLOW.md sont passées,
+  -- 'rejected' sinon (signature invalide, montant incohérent, demande
+  -- introuvable...).
+  outcome           text not null check (outcome in ('accepted', 'rejected')),
+  rejection_reason  text check (rejection_reason is null or outcome = 'rejected'),
+  raw_payload       jsonb not null,
+  received_at       timestamptz not null default now(),
+  -- Un même événement rejoué par le provider (retry réseau, replay) ne doit
+  -- jamais être traité deux fois : c'est l'idempotence exigée par
+  -- PAYMENT-FLOW.md, portée ici par une contrainte SQL et non par une
+  -- simple vérification applicative.
+  constraint payment_events_idempotent unique (provider, provider_event_id)
+);
+
+create index if not exists payment_events_booking_idx on public.payment_events (booking_id);
+create index if not exists payment_events_received_idx on public.payment_events (received_at desc);

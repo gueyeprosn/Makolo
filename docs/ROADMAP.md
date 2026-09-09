@@ -40,27 +40,49 @@ la même période.
 
 Spécification détaillée du cycle de statut : `docs/specs/BOOKING-LIFECYCLE.md`.
 
-## 2. Encaissement d'acompte — Bloquant · Fondation
+## 2. Encaissement d'acompte — Bloquant · Fondation — 🟡 Fondation livrée, encaissement réel bloqué sur un compte marchand
 
 **Problème réel** : aucune transaction ne passe par la plateforme. Client et
 prestataire concluent hors ligne dès que le téléphone est visible ; MAKALO ne
 capture aucune valeur de la mise en relation qu'elle a pourtant produite.
 
-**Travail** :
-1. Service serveur (hors de cette SPA — voir `prisma/README.md`) recevant les
-   webhooks Wave / Orange Money : vérification de signature, idempotence,
-   journalisation systématique (voir `docs/SECURITY.md`).
-2. Nouveau statut de demande ou champ `payment_status` distinct de
-   `booking_status` — une demande peut être `accepted` sans acompte encore
-   confirmé.
-3. Séquestre : l'acompte n'est reversé au prestataire qu'après la date de
-   l'événement, net de commission.
-4. Jamais de confirmation de paiement acceptée depuis le seul frontend.
+**Livré** :
+1. Champ `payment_status` (`none`/`pending`/`paid`/`failed`/`refunded`),
+   distinct de `booking_status` — une demande peut être `accepted` sans
+   acompte encore confirmé — plus `payment_provider`, `deposit_amount`,
+   `payment_reference` sur `booking_requests`, et une table `payment_events`
+   pour la traçabilité et l'idempotence (`UNIQUE (provider,
+   provider_event_id)`).
+2. Ces colonnes sont verrouillées au niveau colonne (`REVOKE`/`GRANT` dans
+   `02_rls.sql`) : aucun compte `authenticated` — administrateur inclus — ne
+   peut les écrire. Seul `service_role` le peut.
+3. `supabase/functions/payment-webhook/` : fonction Edge Supabase qui reçoit
+   un webhook, vérifie sa signature (HMAC-SHA256 réelle pour Wave, schéma
+   Orange Money non confirmé faute de documentation publique), applique
+   l'idempotence, vérifie montant et devise, et transitionne
+   `payment_status`. Jamais de confirmation de paiement acceptée depuis le
+   frontend seul.
+4. Vérifié sur PostgreSQL réel (verrou colonne, idempotence, lecture
+   `payment_events` réservée à l'admin) et par
+   `tests/unit/payment-webhook-signature.test.ts`.
 
-**Débloque** : toute commission, donc tout modèle de revenu.
+**Reste à faire avant un vrai encaissement** (aucun des quatre n'est
+buildable sans le premier) :
+1. Un compte marchand Wave / Orange Money réel et ses secrets.
+2. L'endpoint de création d'intention de paiement (calcule `deposit_amount`,
+   ouvre la session de paiement côté provider, pose `payment_reference`) —
+   suppose lui aussi le compte marchand.
+3. Confirmation du schéma exact des webhooks Orange Money avec le contrat
+   d'intégration réel.
+4. Séquestre : l'acompte n'est reversé au prestataire qu'après la date de
+   l'événement, net de commission — logique de reversement non construite.
 
-Spécification détaillée du flux webhook, des vérifications obligatoires et de
-ce que le frontend n'a jamais le droit de décider : `docs/specs/PAYMENT-FLOW.md`.
+**Débloque** : toute commission, donc tout modèle de revenu — une fois
+l'encaissement réel, pas seulement sa fondation, livré.
+
+Spécification détaillée du flux, des vérifications obligatoires et de ce que
+le frontend n'a jamais le droit de décider : `docs/specs/PAYMENT-FLOW.md`.
+Détail d'implémentation et limites connues : `supabase/functions/payment-webhook/README.md`.
 
 ## 3. Notifications WhatsApp Business — Fondation
 

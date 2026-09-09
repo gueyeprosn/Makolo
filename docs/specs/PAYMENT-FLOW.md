@@ -1,8 +1,12 @@
 # Spécification — Flux d'encaissement de l'acompte
 
-**Statut : non implémenté.** Détaille le chantier n°2 de `docs/ROADMAP.md`.
-Aucune ligne de code de ce dépôt n'implémente ceci aujourd'hui — ne pas
-présenter ce document comme une description de fonctionnalité existante.
+**Statut : fondation livrée, encaissement réel non implémenté.** Détaille le
+chantier n°2 de `docs/ROADMAP.md`. Ce qui suit décrit le flux **visé** ;
+la partie réellement construite (schéma, verrouillage RLS, fonction Edge de
+réception de webhook) est marquée explicitement à chaque étape concernée.
+Aucun compte marchand Wave/Orange Money réel n'est branché : ne pas
+présenter ce document comme une intégration de paiement fonctionnelle.
+Détail d'implémentation : `supabase/functions/payment-webhook/README.md`.
 
 ## Pourquoi un acompte, pas le paiement complet
 
@@ -16,9 +20,10 @@ un paiement intégral sans validation préalable du marché.
 ## Pourquoi ça ne peut pas vivre dans cette SPA
 
 Un webhook de paiement doit vérifier une signature avec un secret qui ne doit
-**jamais** atteindre le navigateur (`docs/SECURITY.md`, section
-« Ce qui reste à faire avant un vrai encaissement »). Cela suppose un service
-serveur — voir `prisma/README.md` pour ce que cette couche doit héberger.
+**jamais** atteindre le navigateur (`docs/SECURITY.md`, section « Acompte
+(chantier n°2) »). Cela suppose un service serveur : ici une fonction Edge
+Supabase, `supabase/functions/payment-webhook/` — voir `prisma/README.md`
+pour la vue d'ensemble de cette couche.
 
 ## Le flux
 
@@ -26,18 +31,18 @@ serveur — voir `prisma/README.md` pour ce que cette couche doit héberger.
 Client confirme la demande
         │
         ▼
-Service serveur crée une intention de paiement
-(montant = 20 % du total, devise XOF)
+Service serveur crée une intention de paiement            ← PAS ENCORE CONSTRUIT
+(montant = 20 % du total, devise XOF)                        (suppose un compte marchand réel)
         │
         ▼
-Client redirigé vers Wave / Orange Money
+Client redirigé vers Wave / Orange Money                   ← PAS ENCORE CONSTRUIT
         │
         ▼
 Provider de paiement notifie le service serveur (webhook)
         │
         ▼
-   Vérifications obligatoires, dans cet ordre :
-   1. Signature du webhook (secret serveur uniquement)
+   Vérifications obligatoires, dans cet ordre :             ← CONSTRUIT
+   1. Signature du webhook (secret serveur uniquement)         (supabase/functions/payment-webhook/)
    2. Idempotence — un même identifiant d'événement rejoué n'a aucun effet
       la seconde fois (table d'événements traités, contrainte UNIQUE)
    3. Montant reçu = montant attendu (jamais fait confiance au frontend)
@@ -46,16 +51,26 @@ Provider de paiement notifie le service serveur (webhook)
       paiement est attendu (pas déjà annulée entre-temps)
         │
         ▼
-Transition booking_status → deposit_paid (voir BOOKING-LIFECYCLE.md)
+Transition payment_status → 'paid'                          ← CONSTRUIT (chaîne séparée de
+(booking_status n'est pas touché — voir                        booking_status, voir BOOKING-LIFECYCLE.md,
+BOOKING-LIFECYCLE.md)                                           « Migration »)
         │
         ▼
-Notification WhatsApp au client et au prestataire (chantier 3)
+Notification WhatsApp au client et au prestataire (chantier 3)  ← PAS ENCORE CONSTRUIT
 ```
+
+Sans l'étape « Service serveur crée une intention de paiement » (qui suppose
+un compte marchand réel), aucune demande n'a de `payment_reference` : le
+webhook reçoit alors un événement mais ne trouve aucune correspondance et le
+rejette proprement (journalisé dans `payment_events`) — c'est le
+comportement correct de cette fondation, pas un bug.
 
 ## Ce que le frontend a le droit de faire
 
-- Afficher l'état courant (`pending`, `accepted`, `deposit_paid`...) lu depuis
-  la base.
+- Afficher l'état courant lu depuis la base : `booking_status`
+  (`pending`/`accepted`/...) et `payment_status`
+  (`none`/`pending`/`paid`/...), deux chaînes séparées — voir
+  `docs/specs/BOOKING-LIFECYCLE.md`.
 - Rediriger vers l'URL de paiement fournie par le service serveur.
 - Afficher un état « en attente de confirmation » après le retour du
   provider, **sans jamais** marquer la demande comme payée localement.
@@ -78,11 +93,12 @@ prestataire net de commission. Le calcul de commission n'est pas encore
 spécifié — ne pas l'implémenter avant qu'un taux et une assiette (GMV ? net
 de frais d'encaissement ?) soient explicitement validés.
 
-## Traçabilité
+## Traçabilité — construit
 
-Chaque webhook reçu — accepté ou rejeté — est journalisé avec son horodatage,
-son identifiant d'événement, et la raison d'un rejet éventuel. Sans cette
-journalisation, un litige de paiement ne peut pas être instruit.
+Chaque webhook reçu — accepté ou rejeté — est journalisé (`payment_events`)
+avec son horodatage, son identifiant d'événement, et la raison d'un rejet
+éventuel. Sans cette journalisation, un litige de paiement ne peut pas être
+instruit. Lisible par un administrateur uniquement (`docs/SECURITY.md`).
 
 ## Rattachement à la sécurité
 

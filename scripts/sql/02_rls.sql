@@ -28,6 +28,7 @@ alter table public.listing_images   enable row level security;
 alter table public.favorites        enable row level security;
 alter table public.booking_requests enable row level security;
 alter table public.notifications    enable row level security;
+alter table public.payment_events   enable row level security;
 
 -- ---------------------------------------------------------------------------
 -- 2. profiles
@@ -289,6 +290,39 @@ create policy "bookings_admin_write" on public.booking_requests
   for all to authenticated
   using (public.is_admin())
   with check (public.is_admin());
+
+-- Verrou colonne par colonne (chantier n°2, docs/specs/PAYMENT-FLOW.md) :
+-- même la policy `bookings_admin_write` ci-dessus ne suffit pas à protéger
+-- l'argent, car un administrateur reste une session `authenticated` normale.
+-- « La confirmation vient toujours d'un endroit que l'utilisateur ne
+-- contrôle pas » (docs/SECURITY.md) : personne connecté avec la clé
+-- anon/authenticated — administrateur inclus — ne doit pouvoir écrire
+-- `payment_status`/`payment_provider`/`deposit_amount`/`payment_reference`,
+-- quelle que soit la ligne. Seul `service_role` (utilisé exclusivement par
+-- la fonction Edge qui traite les webhooks, jamais par le navigateur) le
+-- peut : ce rôle contourne RLS et n'est pas concerné par ces REVOKE/GRANT.
+revoke insert, update on public.booking_requests from authenticated;
+grant insert (listing_id, client_id, provider_id, requested_from, requested_to, quantity, message, status)
+  on public.booking_requests to authenticated;
+grant update (status)
+  on public.booking_requests to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 7 bis. payment_events
+--
+-- Journal des webhooks de paiement (chantier n°2) : écrit exclusivement par
+-- `service_role`, jamais par `anon`/`authenticated` — aucune policy
+-- insert/update/delete pour ces rôles, sur le même principe que
+-- `notifications`. Seul un administrateur peut le consulter, pour instruire
+-- un litige ; ni le client ni le prestataire n'y ont accès directement (le
+-- statut utile leur est déjà exposé via `booking_requests.payment_status`).
+-- ---------------------------------------------------------------------------
+
+drop policy if exists "payment_events_admin_select" on public.payment_events;
+
+create policy "payment_events_admin_select" on public.payment_events
+  for select to authenticated
+  using (public.is_admin());
 
 -- ---------------------------------------------------------------------------
 -- 8. notifications

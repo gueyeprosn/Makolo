@@ -60,7 +60,8 @@ instrumentée : elle le devient avec l'encaissement (voir `ROADMAP.md`).
 
 - Marketplace : recherche plein texte, filtres (catégorie, ville, prix,
   disponibilité), tri, pagination ; l'état vit dans l'URL, donc partageable.
-- Disponibilité calculée par date à partir des demandes acceptées.
+- Disponibilité calculée par période (date de livraison → date de reprise) à
+  partir des demandes acceptées.
 - Favoris, demandes de réservation, notifications in-app.
 - CRUD complet des annonces avec téléversement d'images.
 - Back-office de modération.
@@ -71,8 +72,11 @@ Paiement en ligne, Wave / Orange Money, facturation, chat temps réel, SMS,
 notifications push, GPS et suivi de livraison, commissions automatisées, IA,
 enchères.
 
-Ce n'est pas un oubli : chacun de ces sujets suppose une couche serveur qui
-n'existe pas encore. `ROADMAP.md` indique dans quel ordre les ouvrir.
+Ce n'est pas un oubli : chacun de ces sujets suppose une couche serveur.
+Pour le paiement, une fondation existe (`supabase/functions/payment-webhook/`,
+`docs/specs/PAYMENT-FLOW.md`) mais aucun compte marchand réel n'est branché —
+aucun encaissement n'est possible aujourd'hui. `ROADMAP.md` indique dans quel
+ordre ouvrir le reste.
 
 ## Contexte marché à ne pas perdre de vue
 

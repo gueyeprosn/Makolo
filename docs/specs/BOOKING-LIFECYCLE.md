@@ -1,15 +1,25 @@
 # Spécification — Cycle de vie étendu de la réservation
 
-Ce document a deux parties de statuts très différents :
+Ce document couvre trois choses très différentes :
 
-- **La réservation sur une période (chantier n°1 de `docs/ROADMAP.md`) est
-  livrée et tourne en production** (les deux backends, RLS, tests). Elle est
-  décrite ci-dessous par souci de continuité, mais sa référence à jour est
-  `docs/DATABASE.md` (section « Réservation sur une période ») et
-  `docs/BUSINESS-RULES.md`.
-- **Le modèle cible étendu (statuts `deposit_paid`, `fulfilled`, `completed`,
-  `disputed`) reste non implémenté.** Il prépare le chantier n°2 (paiement)
-  et ne décrit rien de ce qui tourne aujourd'hui.
+- **La réservation sur une période (chantier n°1) est livrée** (les deux
+  backends, RLS, tests). Décrite ci-dessous par souci de continuité ; sa
+  référence à jour est `docs/DATABASE.md` (« Réservation sur une période »)
+  et `docs/BUSINESS-RULES.md`.
+- **La fondation de l'acompte (chantier n°2) est livrée**, mais comme un
+  champ `payment_status` séparé (`none`/`pending`/`paid`/`failed`/
+  `refunded`) — jamais comme une valeur de `booking_status`. `booking_status`
+  n'a pas changé : toujours `pending`/`accepted`/`rejected`/`cancelled`, sans
+  `deposit_paid`. Référence à jour : `docs/DATABASE.md` (« Acompte —
+  fondation ») et `docs/specs/PAYMENT-FLOW.md`.
+- **Le modèle cible étendu ci-dessous (`fulfilled`, `completed`, `disputed`
+  sur `booking_status`, plus la mention `deposit_paid` dans le diagramme)
+  reste non implémenté.** Le diagramme date d'avant la décision — actée dans
+  « Migration » plus bas et effectivement suivie — de garder `payment_status`
+  séparé : lire `deposit_paid` dans ce qui suit comme une illustration de
+  "l'acompte est confirmé", pas comme une future valeur de `booking_status`.
+  `fulfilled`/`completed`/`disputed` supposent le chantier n°4 (constat
+  post-événement) et ne sont pas construits.
 
 ## Réservation sur une période — livré
 
@@ -88,25 +98,39 @@ pending ──accepte──> accepted ──acompte confirmé──> deposit_pai
 
 ## Ce qu'il ne faut pas faire
 
-- **Ne pas** introduire `deposit_paid` avant le chantier 2 (encaissement).
-  Un statut de paiement sans paiement réel est une simulation — voir la
-  Règle d'or de `CLAUDE.md`.
-- **Ne pas** fusionner ce statut avec un champ libre `payment_status` sans
-  y réfléchir : garder les deux machines d'état séparées
-  (`booking_status` pour l'engagement, `payment_status` pour l'argent) évite
-  qu'un échec de paiement ne force une transition de réservation invalide.
+- **Ne pas** introduire `payment_status = 'paid'` sans paiement réel derrière
+  — voir la Règle d'or de `CLAUDE.md`. C'est déjà respecté aujourd'hui : rien
+  ne fait transitionner ce champ hors d'un webhook réel (aucun compte
+  marchand n'étant branché, il reste `none` pour toute demande).
+- **Ne pas** fusionner ce champ avec `booking_status` : garder les deux
+  machines d'état séparées (`booking_status` pour l'engagement,
+  `payment_status` pour l'argent — décision prise, voir « Migration »
+  ci-dessous) évite qu'un échec de paiement ne force une transition de
+  réservation invalide.
 
-## Migration, quand ce chantier s'ouvre
+## Migration — chantier n°2 (acompte), livré
+
+1. ~~Étendre l'enum `booking_status`~~ — **écarté**, au profit de l'option 2.
+2. ✅ Colonne `payment_status` séparée plutôt que de surcharger
+   `booking_status` (`scripts/sql/01_schema.sql`, `02_rls.sql`).
+3. Pas de nouveau trigger de transition : la seule autorité sur
+   `payment_status` est `service_role`, imposée par un verrou colonne
+   (`REVOKE`/`GRANT`), pas par un trigger de transition — plus direct et
+   impossible à contourner même en SQL brut. Voir `docs/SECURITY.md`.
+4. ✅ `tests/unit/payment-webhook-signature.test.ts` couvre la vérification
+   de signature ; l'audit RLS sur PostgreSQL réel couvre le verrou colonne.
+
+## Migration — `fulfilled` / `completed` / `disputed`, non commencée
+
+Ces trois valeurs de `booking_status` supposent le chantier n°4 (constat
+post-événement) :
 
 1. Étendre l'enum `booking_status` (`ALTER TYPE ... ADD VALUE`, irréversible
    en une seule transaction sous Postgres — prévoir une fenêtre de
    maintenance ou une double-écriture).
-2. Ajouter la colonne `payment_status` séparée plutôt que de surcharger
-   `booking_status`.
-3. Étendre `enforce_booking_provider()` et ajouter un nouveau trigger
-   `enforce_booking_lifecycle_transition()` sur le même modèle que
-   `enforce_listing_status_transition()` (`docs/SECURITY.md`) : chaque
-   transition a une autorité précise (client, prestataire, tâche planifiée,
-   jamais le frontend seul pour `deposit_paid`).
-4. Étendre `tests/unit/` avec un test par transition autorisée et par
+2. Ajouter un trigger `enforce_booking_lifecycle_transition()` sur le même
+   modèle que `enforce_listing_status_transition()` (`docs/SECURITY.md`) :
+   chaque transition a une autorité précise (client, prestataire, tâche
+   planifiée).
+3. Étendre `tests/unit/` avec un test par transition autorisée et par
    transition refusée, sur le modèle de `tests/unit/permissions.test.ts`.

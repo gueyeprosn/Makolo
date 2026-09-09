@@ -50,6 +50,19 @@ Chaque règle indique où elle est **appliquée** (autorité) et où elle est
 | Une demande sortie de `pending` est définitive | policies (`using status = 'pending'`) | aucune action proposée hors `pending` |
 | Chaque transition génère une notification pour l'autre partie | triggers `notify_booking_*` | `NotificationBell` |
 
+## Acompte (chantier n°2 — fondation)
+
+| Règle | Appliquée | Reflétée |
+|---|---|---|
+| `payment_status` (`none`/`pending`/`paid`/`failed`/`refunded`) ne peut jamais être écrit par un client authentifié — client, prestataire ou administrateur confondus | `REVOKE`/`GRANT` colonne par colonne sur `booking_requests` (`02_rls.sql`), pas seulement une policy RLS | aucun contrôle d'interface ne le propose : il n'y a pas encore de bouton « Payer » |
+| Seul `service_role` (fonction Edge `payment-webhook`) peut confirmer un paiement | absence de toute policy RLS d'écriture pour `authenticated`/`anon` sur ces colonnes | — |
+| Un même événement de paiement rejoué ne produit aucun effet la seconde fois | contrainte `UNIQUE (provider, provider_event_id)` sur `payment_events` | — |
+| `payment_events` n'est lisible que par un administrateur | policy `payment_events_admin_select` | — |
+
+Cette section ne décrit qu'une fondation de schéma : aucun compte marchand
+Wave/Orange Money réel n'est branché, donc `payment_status` reste `none` pour
+toute demande aujourd'hui. Détail complet : `docs/specs/PAYMENT-FLOW.md`.
+
 ## Favoris
 
 | Règle | Appliquée | Reflétée |
@@ -82,9 +95,11 @@ jamais confiance au client.
 
 ## Ce que ce document ne couvre pas encore
 
-Les règles de commission, d'acompte, de caution et de facturation décrites
-dans le plan de croissance (partagé hors dépôt) ne sont **pas** implémentées :
-aucune table, aucune colonne, aucune policy ne les reflète aujourd'hui. Elles
-entreront ici au fur et à mesure de leur implémentation réelle, jamais avant —
-ce document décrit le système tel qu'il fonctionne, pas tel qu'il est prévu de
-fonctionner (voir `ROADMAP.md` pour l'intention).
+Les règles de commission, de caution et de facturation décrites dans le plan
+de croissance (partagé hors dépôt) ne sont **pas** implémentées : aucune
+table, aucune colonne, aucune policy ne les reflète aujourd'hui. L'acompte a
+une fondation de schéma (section ci-dessus) mais aucun encaissement réel
+n'est possible tant qu'aucun compte marchand n'est branché. Ces règles
+entreront ici au fur et à mesure de leur implémentation réelle, jamais avant
+— ce document décrit le système tel qu'il fonctionne, pas tel qu'il est prévu
+de fonctionner (voir `ROADMAP.md` pour l'intention).

@@ -21,6 +21,7 @@ s'exécutent dans l'ordre.
 | `favorites` | Favoris d'un utilisateur | → `profiles`, `listings` (cascade) |
 | `booking_requests` | Demandes de réservation | → `listings`, `profiles` ×2 |
 | `notifications` | Notifications in-app | → `profiles` (cascade) |
+| `payment_events` | Journal des webhooks de paiement (chantier n°2, fondation) | → `booking_requests` (set null) |
 
 ## Énumérations
 
@@ -28,6 +29,7 @@ s'exécutent dans l'ordre.
 user_role         client | provider | admin
 listing_status    draft | pending | published | archived | rejected
 booking_status    pending | accepted | rejected | cancelled
+payment_status    none | pending | paid | failed | refunded
 price_unit        jour | evenement | unite | heure | semaine
 notification_type booking_request | booking_accepted | booking_rejected
                   | booking_cancelled | listing_published | listing_rejected
@@ -161,6 +163,27 @@ extension `btree_gist`, contrainte d'exclusion, `listing_availability(id,
 from, to)` et `check_booking_capacity()` réécrits en agrégation jour par jour
 (voir plus haut), et les deux backends alignés. Détails et scénarios dans
 `docs/specs/BOOKING-LIFECYCLE.md`.
+
+## Acompte — fondation (chantier n°2)
+
+`booking_requests` porte quatre colonnes supplémentaires : `payment_status`
+(`none` par défaut), `payment_provider`, `deposit_amount`,
+`payment_reference`. **Fondation de schéma uniquement** : aucun compte
+marchand Wave / Orange Money réel n'est branché, donc `payment_status` ne
+quitte jamais `none` aujourd'hui. Détails, ce qui manque encore, et le flux
+complet visé : `docs/specs/PAYMENT-FLOW.md`.
+
+Le point notable pour qui touche à ce schéma : ces quatre colonnes sont
+verrouillées au niveau colonne (`REVOKE`/`GRANT` explicites dans
+`02_rls.sql`), pas seulement par une policy RLS — même un compte
+`authenticated` avec `role = 'admin'` dans `profiles` ne peut pas les écrire
+directement. Seul `service_role` (utilisé exclusivement par
+`supabase/functions/payment-webhook/`) le peut. Voir `docs/SECURITY.md`.
+
+`payment_events` journalise chaque webhook reçu, accepté ou rejeté, avec son
+`provider_event_id` sous contrainte `UNIQUE (provider, provider_event_id)` —
+c'est ce qui porte l'idempotence exigée par `docs/specs/PAYMENT-FLOW.md`.
+Lisible par un administrateur uniquement.
 
 ## Faire évoluer le schéma
 

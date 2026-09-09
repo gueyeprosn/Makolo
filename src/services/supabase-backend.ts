@@ -45,7 +45,8 @@ const LISTING_SELECT = `
 `;
 
 const BOOKING_SELECT = `
-  id, listing_id, client_id, provider_id, requested_from, requested_to, quantity, message, status, created_at, updated_at,
+  id, listing_id, client_id, provider_id, requested_from, requested_to, quantity, message, status,
+  payment_status, payment_provider, deposit_amount, payment_reference, created_at, updated_at,
   listing:listings ( id, title, slug, cover_image, price, price_unit, city, quantity ),
   client:profiles!booking_requests_client_id_fkey ( id, full_name, phone, city, avatar_url ),
   provider:profiles!booking_requests_provider_id_fkey ( id, full_name, phone, city, avatar_url )
