@@ -27,13 +27,25 @@
 -- ---------------------------------------------------------------------------
 
 insert into public.categories (name, slug, description, icon, active) values
+  -- Matériel
   ('Chaises',     'chaises',     'Pour vos invités et cérémonies',                'Armchair',    true),
   ('Tables',      'tables',      'Tables rondes, rectangulaires et cocktail',     'Table2',      true),
   ('Tentes',      'tentes',      'Protégez vos invités du soleil et de la pluie', 'Tent',        true),
   ('Sono',        'sono',        'Sonorisation pour petits et grands événements', 'Speaker',     true),
   ('Éclairage',   'eclairage',   'Créez l''ambiance de votre événement',          'Lightbulb',   true),
   ('Décoration',  'decoration',  'Arches, nappage et décors de salle',            'Sparkles',    true),
-  ('Accessoires', 'accessoires', 'Vaisselle, groupes électrogènes et petit matériel', 'PackageOpen', true)
+  ('Accessoires', 'accessoires', 'Vaisselle, groupes électrogènes et petit matériel', 'PackageOpen', true),
+  -- Prestations et métiers de l'événementiel
+  ('Traiteurs & Cuisiniers',          'traiteurs',          'Repas, buffets et cocktails pour tous vos événements',        'ChefHat',      true),
+  ('DJ & Animation',                  'dj-animation',       'Ambiance sonore et animation pour vos soirées',               'Disc3',        true),
+  ('Maître de cérémonie',             'maitre-ceremonie',   'Animation et déroulé de votre cérémonie',                     'Mic2',         true),
+  ('Sécurité & Gardes du corps',      'securite',           'Agents de sécurité et protection rapprochée',                 'ShieldAlert',  true),
+  ('Photographes & Vidéastes',        'photographes',       'Immortalisez votre événement en photo et en vidéo',           'Camera',       true),
+  ('Musiciens & Groupes traditionnels', 'musiciens',        'Sabar, tama, kora et orchestres pour vos cérémonies',         'Music2',       true),
+  ('Personnel & Hôtesses',            'personnel',          'Serveurs, hôtes et hôtesses pour l''accueil de vos invités',  'Users',        true),
+  ('Transport événementiel',          'transport',          'Véhicules de cérémonie et navettes pour vos invités',         'Car',          true),
+  ('Organisation & Wedding planner',  'organisation',       'Coordination complète de votre événement, de A à Z',          'ClipboardList', true),
+  ('Beauté & Coiffure',               'beaute',             'Coiffure et maquillage pour mariées et invités',              'Wand2',        true)
 on conflict (slug) do update
   set name = excluded.name,
       description = excluded.description,

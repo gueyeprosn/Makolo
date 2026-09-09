@@ -2,13 +2,25 @@
 
 ## Ce que fait MAKALO
 
-Une place de marché sénégalaise de location de matériel événementiel. Elle met en
-relation des organisateurs (particuliers, entreprises, traiteurs) et des loueurs
-de chaises, tables, tentes, sonorisation, éclairage, décoration et accessoires.
+Une place de marché sénégalaise de l'événementiel. Elle met en relation des
+organisateurs (particuliers, entreprises) avec :
 
-MAKALO **n'est pas** un loueur : le contrat se conclut entre le client et le
-prestataire. La plateforme apporte la découverte, la vérification de
-disponibilité et le suivi de la demande.
+- des **loueurs de matériel** : chaises, tables, tentes, sonorisation,
+  éclairage, décoration, accessoires ;
+- des **prestataires de métiers de l'événementiel** : traiteurs, DJ,
+  maîtres de cérémonie, sécurité et gardes du corps, photographes et
+  vidéastes, musiciens et groupes traditionnels, personnel et hôtesses,
+  transport événementiel, organisation (wedding planner), beauté et coiffure.
+
+Les deux types d'offres partagent le même modèle : une annonce, un prix, une
+quantité disponible (unités de matériel ou personnes/équipes mobilisables) et
+une période de disponibilité. Aucune distinction technique n'existe entre
+« louer 200 chaises » et « réserver un traiteur pour 200 couverts » — la
+plateforme le traite comme la même demande de réservation.
+
+MAKALO **n'est pas** un loueur ni un prestataire : le contrat se conclut
+entre le client et le prestataire. La plateforme apporte la découverte, la
+vérification de disponibilité et le suivi de la demande.
 
 ## Le parcours, en une ligne
 
@@ -26,9 +38,9 @@ Cherche, compare, met en favori, vérifie la disponibilité à une date, envoie 
 demande, suit son statut, annule tant qu'elle est en attente.
 
 ### Prestataire (`provider`)
-Publie ses annonces (brouillon → soumission → publication après modération),
-téléverse ses photos, définit prix et stock, reçoit les demandes, accepte ou
-refuse.
+Publie ses annonces — matériel ou prestation de service (brouillon →
+soumission → publication après modération), téléverse ses photos, définit
+prix et quantité disponible, reçoit les demandes, accepte ou refuse.
 
 ### Administrateur (`admin`)
 Modère les annonces (publier / refuser avec motif / archiver / supprimer), gère

@@ -182,7 +182,7 @@ export function BookingDialog({ listing, open, onOpenChange, initialDate }: Book
             label="Quantité"
             htmlFor="quantity"
             required
-            hint={`Stock total annoncé : ${formatNumber(listing.quantity)} unité(s).`}
+            hint={`Quantité totale annoncée : ${formatNumber(listing.quantity)} unité(s).`}
             error={form.formState.errors.quantity?.message}
           >
             <Input

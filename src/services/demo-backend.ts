@@ -1014,7 +1014,7 @@ export function buildAvailability(
   const remaining = Math.max(0, total - accepted);
 
   if (!listing.availability_status || listing.status !== 'published') {
-    return { state: 'disabled', remaining: 0, booked: accepted, pending, total, label: 'Non disponible à la location' };
+    return { state: 'disabled', remaining: 0, booked: accepted, pending, total, label: 'Non disponible actuellement' };
   }
   if (remaining <= 0) {
     return { state: 'unavailable', remaining: 0, booked: accepted, pending, total, label: 'Indisponible à cette date' };

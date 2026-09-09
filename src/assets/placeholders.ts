@@ -85,6 +85,78 @@ const accessoires = scene(`
   <path d="M280 340h60M460 340h60"/>
 `);
 
+/** Traiteurs & cuisiniers : toque et plat couvert. */
+const traiteurs = scene(`
+  <path d="M310 280c-40-20-40-90 20-100 10-40 60-60 70-20 50-10 80 30 60 70 20 10 20 50-10 60z"/>
+  <rect x="300" y="280" width="200" height="50" rx="10"/>
+  <ellipse cx="400" cy="460" rx="150" ry="26" stroke="${ORANGE}"/>
+  <path d="M320 460c0-45 36-64 80-64s80 19 80 64" stroke="${ORANGE}"/>
+`);
+
+/** DJ & animation : platine vinyle. */
+const djAnimation = scene(`
+  <circle cx="400" cy="300" r="140"/>
+  <circle cx="400" cy="300" r="30" stroke="${ORANGE}"/>
+  <path d="M400 160v40M400 400v40M260 300h40M500 300h40" stroke="${ORANGE}"/>
+`);
+
+/** Maître de cérémonie : micro sur pied. */
+const maitreCeremonie = scene(`
+  <rect x="360" y="150" width="80" height="180" rx="40"/>
+  <path d="M300 290a100 100 0 00200 0" stroke="${ORANGE}"/>
+  <path d="M400 390v100M340 490h120"/>
+`);
+
+/** Sécurité & gardes du corps : bouclier. */
+const securite = scene(`
+  <path d="M400 140l160 60v140c0 120-80 190-160 220-80-30-160-100-160-220V200z"/>
+  <path d="M340 320l50 50 90-100" stroke="${ORANGE}"/>
+`);
+
+/** Photographes & vidéastes : appareil photo. */
+const photographes = scene(`
+  <rect x="220" y="230" width="360" height="230" rx="24"/>
+  <path d="M320 230l30-50h100l30 50"/>
+  <circle cx="400" cy="345" r="80" stroke="${ORANGE}"/>
+`);
+
+/** Musiciens & groupes traditionnels : tam-tam sabar. */
+const musiciens = scene(`
+  <path d="M300 220h200l-30 260h-140z"/>
+  <ellipse cx="400" cy="220" rx="100" ry="30"/>
+  <path d="M520 300c40 20 40 90 0 110" stroke="${ORANGE}"/>
+`);
+
+/** Personnel & hôtesses : deux silhouettes d'accueil. */
+const personnel = scene(`
+  <circle cx="330" cy="230" r="50"/>
+  <path d="M240 460c0-80 50-130 90-130s90 50 90 130"/>
+  <circle cx="470" cy="230" r="50" stroke="${ORANGE}"/>
+  <path d="M380 460c0-80 50-130 90-130s90 50 90 130" stroke="${ORANGE}"/>
+`);
+
+/** Transport événementiel : véhicule de cérémonie. */
+const transport = scene(`
+  <path d="M220 380l40-90c10-20 30-30 55-30h170c25 0 45 10 55 30l40 90"/>
+  <rect x="200" y="380" width="400" height="70" rx="18"/>
+  <circle cx="290" cy="450" r="34" stroke="${ORANGE}"/>
+  <circle cx="510" cy="450" r="34" stroke="${ORANGE}"/>
+`);
+
+/** Organisation & wedding planner : liste de tâches. */
+const organisation = scene(`
+  <rect x="270" y="180" width="260" height="340" rx="20"/>
+  <rect x="340" y="150" width="120" height="50" rx="14"/>
+  <path d="M320 280h160M320 340h160M320 400h100" stroke="${ORANGE}"/>
+`);
+
+/** Beauté & coiffure : miroir à main. */
+const beaute = scene(`
+  <circle cx="400" cy="270" r="110"/>
+  <path d="M400 380v160" stroke="${ORANGE}"/>
+  <path d="M340 540h120" stroke="${ORANGE}"/>
+`);
+
 export const CATEGORY_PLACEHOLDER: Record<string, string> = {
   chaises,
   tables,
@@ -93,6 +165,16 @@ export const CATEGORY_PLACEHOLDER: Record<string, string> = {
   eclairage,
   decoration,
   accessoires,
+  traiteurs,
+  'dj-animation': djAnimation,
+  'maitre-ceremonie': maitreCeremonie,
+  securite,
+  photographes,
+  musiciens,
+  personnel,
+  transport,
+  organisation,
+  beaute,
 };
 
 /** Visuel générique utilisé quand la catégorie est inconnue. */

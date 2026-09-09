@@ -103,7 +103,7 @@ export function ListingCard({ listing, hideFavorite, showStatus, footer, classNa
           </span>
           <span className="inline-flex items-center gap-1">
             <Package className="size-3.5" aria-hidden="true" />
-            {formatNumber(listing.quantity)} en stock
+            {formatNumber(listing.quantity)} disponible{listing.quantity > 1 ? 's' : ''}
           </span>
         </div>
 

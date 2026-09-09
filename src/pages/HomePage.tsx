@@ -283,7 +283,7 @@ export function HomePage() {
               <h2 id="categories-title" className="makalo-h2">
                 Explorez par catégorie
               </h2>
-              <p className="mt-2 text-doux">Le matériel essentiel pour réussir votre événement.</p>
+              <p className="mt-2 text-doux">Matériel et prestataires essentiels pour réussir votre événement.</p>
             </div>
             <Button asChild variant="link">
               <Link to="/materiel">
@@ -295,7 +295,7 @@ export function HomePage() {
 
           {categoriesQuery.isPending && (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-              {Array.from({ length: 5 }).map((_, index) => (
+              {Array.from({ length: 10 }).map((_, index) => (
                 <div key={index} className="skeleton h-52 rounded-2xl" />
               ))}
             </div>
@@ -305,7 +305,7 @@ export function HomePage() {
 
           {categoriesQuery.data && (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-              {categoriesQuery.data.slice(0, 5).map((category) => (
+              {categoriesQuery.data.slice(0, 10).map((category) => (
                 <CategoryCard key={category.id} category={category} />
               ))}
             </div>

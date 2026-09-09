@@ -12,8 +12,8 @@ export function Footer() {
         <div className="sm:col-span-2 lg:col-span-1">
           <Logo tone="dark" />
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-nuit-100">
-            La plateforme de location de matériel événementiel au Sénégal. Chaises, tables, tentes, sonorisation,
-            éclairage et décoration.
+            La plateforme événementielle du Sénégal. Matériel (chaises, tables, tentes, sonorisation, éclairage) et
+            prestataires (traiteurs, DJ, sécurité, photographes…) pour tous vos événements.
           </p>
           <p className="mt-4 inline-flex items-center gap-1.5 text-sm text-nuit-200">
             <MapPin className="size-4" aria-hidden="true" />
@@ -50,10 +50,18 @@ export function Footer() {
         <nav aria-label="Catégories">
           <h2 className="text-sm font-bold uppercase tracking-wide text-white">Catégories</h2>
           <ul className="mt-4 space-y-2.5 text-sm text-nuit-100">
-            {['chaises', 'tables', 'tentes', 'sono', 'eclairage'].map((slug) => (
+            {[
+              { slug: 'chaises', label: 'Chaises' },
+              { slug: 'tentes', label: 'Tentes' },
+              { slug: 'sono', label: 'Sono' },
+              { slug: 'traiteurs', label: 'Traiteurs & Cuisiniers' },
+              { slug: 'dj-animation', label: 'DJ & Animation' },
+              { slug: 'securite', label: 'Sécurité & Gardes du corps' },
+              { slug: 'photographes', label: 'Photographes & Vidéastes' },
+            ].map(({ slug, label }) => (
               <li key={slug}>
-                <Link to={`/materiel?categorie=${slug}`} className="capitalize transition-colors hover:text-orange">
-                  {slug === 'eclairage' ? 'Éclairage' : slug}
+                <Link to={`/materiel?categorie=${slug}`} className="transition-colors hover:text-orange">
+                  {label}
                 </Link>
               </li>
             ))}

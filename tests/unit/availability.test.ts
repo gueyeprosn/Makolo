@@ -61,7 +61,7 @@ describe('buildAvailability', () => {
     const result = buildAvailability(listing(400, false), 0, 0);
     expect(result.state).toBe('disabled');
     expect(result.remaining).toBe(0);
-    expect(result.label).toBe('Non disponible à la location');
+    expect(result.label).toBe('Non disponible actuellement');
   });
 
   it('une annonce non publiée n’est pas réservable', () => {

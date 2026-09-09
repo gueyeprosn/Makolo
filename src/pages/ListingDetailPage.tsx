@@ -185,7 +185,7 @@ export function ListingDetailPage() {
                 </Link>
               )}
               {listing.availability_status ? (
-                <Badge variant="success">Disponible à la location</Badge>
+                <Badge variant="success">Disponible</Badge>
               ) : (
                 <Badge variant="danger">Momentanément indisponible</Badge>
               )}
@@ -201,7 +201,7 @@ export function ListingDetailPage() {
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <Package className="size-4" aria-hidden="true" />
-                {formatNumber(listing.quantity)} unité(s) en stock
+                {formatNumber(listing.quantity)} unité(s) disponible(s)
               </span>
             </div>
           </div>

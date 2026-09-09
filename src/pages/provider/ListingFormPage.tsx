@@ -181,7 +181,7 @@ export function ListingFormPage() {
               label="Titre de l'annonce"
               htmlFor="title"
               required
-              hint="Exemple : Chaise Napoléon dorée, Tente de réception 10x20 m."
+              hint="Exemple : Chaise Napoléon dorée, DJ mariage & soirée, Traiteur buffet 100 couverts."
               error={form.formState.errors.title?.message}
             >
               <Input
@@ -212,7 +212,7 @@ export function ListingFormPage() {
               label="Description"
               htmlFor="description"
               required
-              hint="Décrivez le matériel, son état, ce qui est inclus et les modalités de livraison."
+              hint="Décrivez l'offre (matériel ou prestation), ce qui est inclus, et les modalités de livraison ou d'intervention."
               error={form.formState.errors.description?.message}
             >
               <Textarea
@@ -226,7 +226,7 @@ export function ListingFormPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Tarif et stock</CardTitle>
+            <CardTitle>Tarif et disponibilité</CardTitle>
             <CardDescription>Indiquez votre prix en FCFA et la quantité réellement disponible.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-3">
@@ -281,7 +281,7 @@ export function ListingFormPage() {
         <Card>
           <CardHeader>
             <CardTitle>Localisation et conditions</CardTitle>
-            <CardDescription>Où le matériel est-il disponible et sous quelles conditions ?</CardDescription>
+            <CardDescription>Où l'offre est-elle disponible et sous quelles conditions ?</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -318,9 +318,9 @@ export function ListingFormPage() {
             </div>
 
             <Field
-              label="Conditions de location"
+              label="Conditions de location ou d'intervention"
               htmlFor="conditions"
-              hint="Caution, quantité minimum, frais de livraison, horaires de retrait…"
+              hint="Caution, quantité minimum, frais de déplacement, horaires d'intervention ou de retrait…"
               error={form.formState.errors.conditions?.message}
             >
               <Textarea
@@ -333,10 +333,10 @@ export function ListingFormPage() {
             <div className="flex items-center justify-between gap-4 rounded-xl bg-ivoire px-4 py-3.5">
               <div>
                 <Label htmlFor="availability_status" className="cursor-pointer">
-                  Matériel disponible à la location
+                  Offre disponible
                 </Label>
                 <p className="mt-0.5 text-sm text-doux">
-                  Désactivez temporairement si votre matériel est indisponible (entretien, saison…).
+                  Désactivez temporairement si vous n'êtes pas disponible (entretien, congés, saison…).
                 </p>
               </div>
               <Switch

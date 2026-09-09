@@ -105,11 +105,11 @@ export function MarketplacePage() {
   });
 
   const activeCategory = categoriesQuery.data?.find((category) => category.slug === filters.category);
-  const title = activeCategory ? `${activeCategory.name} à louer` : 'Matériel événementiel';
+  const title = activeCategory ? activeCategory.name : 'Matériel et prestataires événementiels';
 
   useDocumentTitle(
     title,
-    activeCategory?.description ?? 'Parcourez le matériel événementiel disponible à la location au Sénégal.',
+    activeCategory?.description ?? 'Parcourez le matériel et les prestataires disponibles pour vos événements au Sénégal.',
   );
 
   const activeFilterCount = [

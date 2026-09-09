@@ -2,12 +2,22 @@ import { Link } from 'react-router-dom';
 import {
   Armchair,
   ArrowRight,
+  Camera,
+  Car,
+  ChefHat,
+  ClipboardList,
+  Disc3,
   Lightbulb,
+  Mic2,
+  Music2,
   PackageOpen,
+  ShieldAlert,
   Speaker,
   Sparkles,
   Table2,
   Tent,
+  Users,
+  Wand2,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -15,6 +25,7 @@ import type { Category } from '@/types';
 
 /** Correspondance slug -> icône Lucide (une seule bibliothèque d'icônes). */
 const ICONS: Record<string, LucideIcon> = {
+  // Matériel
   chaises: Armchair,
   tables: Table2,
   tentes: Tent,
@@ -22,6 +33,17 @@ const ICONS: Record<string, LucideIcon> = {
   eclairage: Lightbulb,
   decoration: Sparkles,
   accessoires: PackageOpen,
+  // Prestations et métiers de l'événementiel
+  traiteurs: ChefHat,
+  'dj-animation': Disc3,
+  'maitre-ceremonie': Mic2,
+  securite: ShieldAlert,
+  photographes: Camera,
+  musiciens: Music2,
+  personnel: Users,
+  transport: Car,
+  organisation: ClipboardList,
+  beaute: Wand2,
 };
 
 export function categoryIcon(slug?: string | null): LucideIcon {
