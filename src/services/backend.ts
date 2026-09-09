@@ -1,4 +1,5 @@
 import type {
+  AdminActivityEvent,
   AdminStats,
   AvailabilityResult,
   BookingRequestWithRelations,
@@ -15,6 +16,7 @@ import type {
   Paginated,
   Profile,
   ProviderStats,
+  ProviderVerificationStatus,
   User,
   UserRole,
 } from '@/types';
@@ -30,6 +32,7 @@ export interface AdminUserFilters {
   search?: string;
   role?: UserRole | 'all';
   active?: 'all' | 'active' | 'inactive';
+  verification?: ProviderVerificationStatus | 'all';
   page?: number;
   pageSize?: number;
 }
@@ -116,4 +119,12 @@ export interface MakaloBackend {
   /* Administration -------------------------------------------------------- */
   adminListUsers(filters: AdminUserFilters): Promise<Paginated<Profile>>;
   adminUpdateUser(id: string, patch: { role?: UserRole; active?: boolean }): Promise<Profile>;
+  /** Fil d'activité réel (CMS admin — Direction), composé d'événements dont l'horodatage est fiable. */
+  adminListActivity(limit?: number): Promise<AdminActivityEvent[]>;
+
+  /* Vérification prestataire (CMS admin — Opérations) ---------------------- */
+  /** Le prestataire demande sa vérification. Refusé côté base si le statut actuel ne le permet pas. */
+  requestProviderVerification(userId: string): Promise<Profile>;
+  /** Réservé à l'administrateur. `note` obligatoire si `status === 'rejected'`. */
+  adminSetProviderVerification(id: string, status: ProviderVerificationStatus, note?: string | null): Promise<Profile>;
 }

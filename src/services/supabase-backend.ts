@@ -3,6 +3,7 @@ import { AppError, toAppError } from '@/lib/errors';
 import { requireSupabase, supabase } from '@/lib/supabase';
 import { slugify } from '@/lib/utils';
 import type {
+  AdminActivityEvent,
   AdminStats,
   AvailabilityResult,
   BookingRequestWithRelations,
@@ -19,6 +20,7 @@ import type {
   Paginated,
   Profile,
   ProviderStats,
+  ProviderVerificationStatus,
   User,
   UserRole,
 } from '@/types';
@@ -763,17 +765,42 @@ export const supabaseBackend: MakaloBackend = {
 
   async getAdminStats() {
     const client = requireSupabase();
-    const [users, providers, clients, listings, pendingListings, requests, acceptedRequests, categories] =
-      await Promise.all([
-        client.from('profiles').select('id', { count: 'exact', head: true }),
-        client.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'provider'),
-        client.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'client'),
-        client.from('listings').select('id', { count: 'exact', head: true }),
-        client.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        client.from('booking_requests').select('id', { count: 'exact', head: true }),
-        client.from('booking_requests').select('id', { count: 'exact', head: true }).eq('status', 'accepted'),
-        client.from('categories').select('id', { count: 'exact', head: true }),
-      ]);
+    const [
+      users,
+      providers,
+      clients,
+      listings,
+      pendingListings,
+      requests,
+      pendingBookings,
+      acceptedRequests,
+      categories,
+      pendingVerifications,
+      acceptedBookingValues,
+    ] = await Promise.all([
+      client.from('profiles').select('id', { count: 'exact', head: true }),
+      client.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'provider'),
+      client.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'client'),
+      client.from('listings').select('id', { count: 'exact', head: true }),
+      client.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      client.from('booking_requests').select('id', { count: 'exact', head: true }),
+      client.from('booking_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      client.from('booking_requests').select('id', { count: 'exact', head: true }).eq('status', 'accepted'),
+      client.from('categories').select('id', { count: 'exact', head: true }),
+      client
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'provider')
+        .eq('verification_status', 'pending'),
+      client.from('booking_requests').select('quantity, listings ( price )').eq('status', 'accepted'),
+    ]);
+    // Estimation, pas un chiffre d'affaires réel — voir le commentaire sur
+    // `AdminStats.gmvEstimate` (src/types/index.ts) : aucun tarif « /jour »
+    // n'est ajusté au nombre de jours de la période réservée.
+    const gmvEstimate = (acceptedBookingValues.data ?? []).reduce((sum, row) => {
+      const listing = Array.isArray(row.listings) ? row.listings[0] : row.listings;
+      return sum + (listing?.price ?? 0) * row.quantity;
+    }, 0);
     return {
       users: users.count ?? 0,
       providers: providers.count ?? 0,
@@ -781,8 +808,11 @@ export const supabaseBackend: MakaloBackend = {
       listings: listings.count ?? 0,
       pendingListings: pendingListings.count ?? 0,
       requests: requests.count ?? 0,
+      pendingBookings: pendingBookings.count ?? 0,
       acceptedRequests: acceptedRequests.count ?? 0,
       categories: categories.count ?? 0,
+      pendingVerifications: pendingVerifications.count ?? 0,
+      gmvEstimate,
     } satisfies AdminStats;
   },
 
@@ -797,6 +827,7 @@ export const supabaseBackend: MakaloBackend = {
     let query = client.from('profiles').select('*', { count: 'exact' }).order('created_at', { ascending: false });
     if (filters.role && filters.role !== 'all') query = query.eq('role', filters.role);
     if (filters.active && filters.active !== 'all') query = query.eq('active', filters.active === 'active');
+    if (filters.verification && filters.verification !== 'all') query = query.eq('verification_status', filters.verification);
     if (filters.search) {
       const term = filters.search.replace(/[%,()]/g, ' ').trim();
       if (term) query = query.or(`full_name.ilike.%${term}%,email.ilike.%${term}%`);
@@ -817,6 +848,133 @@ export const supabaseBackend: MakaloBackend = {
   async adminUpdateUser(id: string, patch: { role?: UserRole; active?: boolean }) {
     const client = requireSupabase();
     const { data, error } = await client.from('profiles').update(patch).eq('id', id).select('*').single();
+    if (error) throw toAppError(error);
+    return data as Profile;
+  },
+
+  async adminListActivity(limit = 20) {
+    const client = requireSupabase();
+    const [createdBookings, resolvedBookings, moderatedListings, newProviders, verificationEvents] = await Promise.all([
+      client
+        .from('booking_requests')
+        .select('id, created_at, client:profiles!booking_requests_client_id_fkey(full_name)')
+        .order('created_at', { ascending: false })
+        .limit(limit),
+      client
+        .from('booking_requests')
+        .select(
+          'id, status, updated_at, client:profiles!booking_requests_client_id_fkey(full_name), provider:profiles!booking_requests_provider_id_fkey(full_name)',
+        )
+        .in('status', ['accepted', 'rejected', 'cancelled'])
+        .order('updated_at', { ascending: false })
+        .limit(limit),
+      client
+        .from('listings')
+        .select('id, title, status, moderated_at, provider:profiles!listings_provider_id_fkey(full_name)')
+        .in('status', ['published', 'rejected'])
+        .not('moderated_at', 'is', null)
+        .order('moderated_at', { ascending: false })
+        .limit(limit),
+      client.from('profiles').select('id, full_name, created_at').eq('role', 'provider').order('created_at', { ascending: false }).limit(limit),
+      client
+        .from('profiles')
+        .select('id, full_name, verification_status, verification_requested_at, verified_at')
+        .eq('role', 'provider')
+        .in('verification_status', ['pending', 'verified'])
+        .order('updated_at', { ascending: false })
+        .limit(limit),
+    ]);
+
+    const events: AdminActivityEvent[] = [];
+    for (const b of createdBookings.data ?? []) {
+      events.push({
+        id: `${b.id}-created`,
+        type: 'booking_created',
+        label: 'Nouvelle demande de réservation',
+        actor: one<{ full_name: string }>(b.client)?.full_name ?? null,
+        at: b.created_at,
+        href: '/admin/operations/reservations',
+      });
+    }
+    for (const b of resolvedBookings.data ?? []) {
+      const type = b.status === 'accepted' ? 'booking_accepted' : b.status === 'rejected' ? 'booking_rejected' : 'booking_cancelled';
+      const label = b.status === 'accepted' ? 'Demande acceptée' : b.status === 'rejected' ? 'Demande refusée' : 'Demande annulée';
+      const actor = b.status === 'cancelled' ? one<{ full_name: string }>(b.client) : one<{ full_name: string }>(b.provider);
+      events.push({ id: `${b.id}-${b.status}`, type, label, actor: actor?.full_name ?? null, at: b.updated_at, href: '/admin/operations/reservations' });
+    }
+    for (const l of moderatedListings.data ?? []) {
+      events.push({
+        id: `${l.id}-${l.status}`,
+        type: l.status === 'published' ? 'listing_published' : 'listing_rejected',
+        label: l.status === 'published' ? `Annonce publiée : ${l.title}` : `Annonce refusée : ${l.title}`,
+        actor: one<{ full_name: string }>(l.provider)?.full_name ?? null,
+        at: l.moderated_at as string,
+        href: '/admin/operations/annonces',
+      });
+    }
+    for (const p of newProviders.data ?? []) {
+      events.push({
+        id: `${p.id}-registered`,
+        type: 'provider_registered',
+        label: `Nouveau prestataire : ${p.full_name}`,
+        actor: p.full_name,
+        at: p.created_at,
+        href: '/admin/operations/prestataires',
+      });
+    }
+    for (const p of verificationEvents.data ?? []) {
+      if (p.verification_status === 'pending' && p.verification_requested_at) {
+        events.push({
+          id: `${p.id}-verif-requested`,
+          type: 'provider_verification_requested',
+          label: `Demande de vérification : ${p.full_name}`,
+          actor: p.full_name,
+          at: p.verification_requested_at,
+          href: '/admin/operations/prestataires',
+        });
+      }
+      if (p.verification_status === 'verified' && p.verified_at) {
+        events.push({
+          id: `${p.id}-verified`,
+          type: 'provider_verified',
+          label: `Prestataire vérifié : ${p.full_name}`,
+          actor: p.full_name,
+          at: p.verified_at,
+          href: '/admin/operations/prestataires',
+        });
+      }
+    }
+
+    return events.sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit);
+  },
+
+  /* Vérification prestataire ------------------------------------------------ */
+
+  async requestProviderVerification(userId: string) {
+    const client = requireSupabase();
+    const uid = await requireUserId();
+    if (uid !== userId) throw new AppError('Accès refusé.', 'forbidden');
+    const { data, error } = await client
+      .from('profiles')
+      .update({ verification_status: 'pending' })
+      .eq('id', userId)
+      .select('*')
+      .single();
+    if (error) throw toAppError(error);
+    return data as Profile;
+  },
+
+  async adminSetProviderVerification(id: string, status: ProviderVerificationStatus, note?: string | null) {
+    const client = requireSupabase();
+    if (status === 'rejected' && !note?.trim()) {
+      throw new AppError('Un rejet de vérification doit être motivé.', 'invalid_input');
+    }
+    const { data, error } = await client
+      .from('profiles')
+      .update({ verification_status: status, verification_note: status === 'rejected' ? note?.trim() : null })
+      .eq('id', id)
+      .select('*')
+      .single();
     if (error) throw toAppError(error);
     return data as Profile;
   },

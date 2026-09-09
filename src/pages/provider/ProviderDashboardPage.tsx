@@ -1,18 +1,86 @@
+import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarClock, CheckCircle2, Clock, Package, PlusCircle } from 'lucide-react';
+import { ArrowRight, CalendarClock, CheckCircle2, Clock, Package, PlusCircle, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { RowSkeleton, StatCardSkeleton } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { PageHeader } from '@/components/dashboard/PageHeader';
 import { BookingCard } from '@/components/booking/BookingCard';
+import { useToast } from '@/components/ui/toast';
+import { api } from '@/services';
 import { useAuth } from '@/hooks/use-auth';
 import { useProviderStats } from '@/hooks/use-stats';
 import { useProviderBookings } from '@/hooks/use-bookings';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { errorMessage } from '@/lib/errors';
 import { firstName } from '@/lib/utils';
+import type { ProviderVerificationStatus } from '@/types';
+
+const VERIFICATION_BADGE: Record<ProviderVerificationStatus, { label: string; variant: 'neutral' | 'orange' | 'success' | 'danger' }> = {
+  unverified: { label: 'Non vérifié', variant: 'neutral' },
+  pending: { label: 'Demande envoyée', variant: 'orange' },
+  verified: { label: 'Vérifié', variant: 'success' },
+  rejected: { label: 'Vérification rejetée', variant: 'danger' },
+};
+
+function ProviderVerificationCard() {
+  const { profile, refresh } = useAuth();
+  const toast = useToast();
+  const [busy, setBusy] = React.useState(false);
+  if (!profile) return null;
+
+  const status = profile.verification_status;
+  const canRequest = status === 'unverified' || status === 'rejected';
+  const badge = VERIFICATION_BADGE[status];
+
+  const requestVerification = async () => {
+    setBusy(true);
+    try {
+      await api.requestProviderVerification(profile.id);
+      await refresh();
+      toast.success('Demande envoyée.', "L'équipe MAKALO va examiner votre profil.");
+    } catch (error) {
+      toast.error('Envoi impossible', errorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card className="mt-10">
+      <CardHeader>
+        <div className="flex flex-wrap items-center gap-2">
+          <CardTitle>Vérification du profil</CardTitle>
+          <Badge variant={badge.variant}>{badge.label}</Badge>
+        </div>
+        <CardDescription>
+          Un profil vérifié inspire davantage confiance aux clients. La vérification est distincte de la modération
+          de vos annonces.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {status === 'rejected' && profile.verification_note && (
+          <p className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-destructive">
+            <span className="font-semibold">Motif du rejet :</span> {profile.verification_note}
+          </p>
+        )}
+        {status === 'pending' && (
+          <p className="text-sm text-doux">Votre demande est en cours d'examen par l'équipe MAKALO.</p>
+        )}
+        {status === 'verified' && <p className="text-sm text-doux">Votre profil est vérifié. Rien à faire.</p>}
+        {canRequest && (
+          <Button variant="outline" onClick={() => void requestVerification()} loading={busy} loadingText="Envoi…">
+            <ShieldCheck className="size-4" aria-hidden="true" />
+            {status === 'rejected' ? 'Redemander une vérification' : 'Demander la vérification'}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export function ProviderDashboardPage() {
   useDocumentTitle('Espace prestataire');
@@ -127,6 +195,8 @@ export function ProviderDashboardPage() {
           </Button>
         </CardContent>
       </Card>
+
+      <ProviderVerificationCard />
     </>
   );
 }

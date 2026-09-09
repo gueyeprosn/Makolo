@@ -2,6 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services';
 import { useAuth } from './use-auth';
 
+export function useAdminActivity(enabled: boolean) {
+  return useQuery({
+    queryKey: ['admin', 'activity'],
+    queryFn: () => api.adminListActivity(20),
+    enabled,
+  });
+}
+
 export function useClientStats() {
   const { user } = useAuth();
   return useQuery({

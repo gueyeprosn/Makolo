@@ -26,13 +26,14 @@ s'exécutent dans l'ordre.
 ## Énumérations
 
 ```
-user_role         client | provider | admin
-listing_status    draft | pending | published | archived | rejected
-booking_status    pending | accepted | rejected | cancelled
-payment_status    none | pending | paid | failed | refunded
-price_unit        jour | evenement | unite | heure | semaine
-notification_type booking_request | booking_accepted | booking_rejected
-                  | booking_cancelled | listing_published | listing_rejected
+user_role                    client | provider | admin
+listing_status               draft | pending | published | archived | rejected
+booking_status                pending | accepted | rejected | cancelled
+payment_status                none | pending | paid | failed | refunded
+provider_verification_status unverified | pending | verified | rejected
+price_unit                    jour | evenement | unite | heure | semaine
+notification_type            booking_request | booking_accepted | booking_rejected
+                              | booking_cancelled | listing_published | listing_rejected
 ```
 
 ## Cycle de vie d'une annonce
@@ -53,6 +54,38 @@ trigger `enforce_listing_status_transition()`, pas seulement par l'interface.
 
 Une annonce refusée qui est corrigée repasse automatiquement en `pending`, et
 son `moderation_reason` est effacé.
+
+`listings.moderated_at` est l'horodatage de la **dernière décision admin**
+(publication ou refus) — distinct de `updated_at`, qui bouge aussi quand le
+prestataire modifie le prix d'une annonce déjà publiée. C'est ce champ, pas
+`updated_at`, qui alimente le fil d'activité admin (voir plus bas).
+
+## Vérification d'identité prestataire (back-office CMS)
+
+Distincte de la modération d'annonce : un prestataire peut avoir des annonces
+publiées sans être « vérifié », et inversement. Portée par 4 colonnes sur
+`profiles` : `verification_status`, `verification_note`,
+`verification_requested_at`, `verified_at`.
+
+```
+unverified ──(prestataire demande)──> pending ──(admin vérifie)──> verified
+    ▲                                    │
+    │                                    └──(admin rejette, motif requis)──> rejected
+    └────────────(prestataire redemande)────┘
+```
+
+Le trigger `enforce_provider_verification_transition()` (`before update` sur
+`profiles`, `security definer`) impose cette machine à états :
+
+- un compte non-admin ne peut **que** demander une vérification (`unverified`
+  ou `rejected` → `pending`) ; toute autre transition est refusée
+  (`errcode 42501`) — il ne peut jamais s'auto-déclarer `verified` ;
+- un rejet par l'administrateur sans `verification_note` est refusé
+  (`errcode 22023`) ;
+- `verified_at` est recalculé par le trigger lui-même (jamais accepté depuis
+  le client) et remis à `null` dès que le statut n'est plus `verified` ;
+- une modification de profil sans rapport (nom, ville, bio) préserve les 4
+  champs de vérification tels quels, côté admin comme côté prestataire.
 
 ## Cycle de vie d'une demande
 
@@ -77,10 +110,21 @@ Une demande sortie de `pending` est définitive. Aucune transition retour.
 | `listing_availability(id, from, to)` | fonction `security definer` | Renvoie **uniquement des agrégats** de disponibilité sur une période |
 | `check_booking_capacity()` | trigger `security definer` | Refuse une acceptation dépassant le stock |
 | `enforce_booking_provider()` | trigger | Déduit `provider_id` de l'annonce, jamais du client |
-| `enforce_listing_status_transition()` | trigger | Bloque l'auto-publication |
+| `enforce_listing_status_transition()` | trigger | Bloque l'auto-publication ; renseigne `moderated_at` |
+| `enforce_provider_verification_transition()` | trigger `security definer` | Impose la machine à états de vérification prestataire (voir plus haut) |
 | `notify_booking_created()` | trigger | Notifie le prestataire |
 | `notify_booking_status_change()` | trigger | Notifie le client (ou le prestataire si annulation) |
 | `notify_listing_moderation()` | trigger | Notifie le prestataire d'une publication ou d'un refus |
+
+### Fil d'activité admin (Direction)
+
+`adminListActivity()` (contrat `MakaloBackend`) compose son fil **uniquement**
+à partir d'horodatages fiables et immuables : `created_at` (création),
+`moderated_at` / `verification_requested_at` / `verified_at` (décisions), et
+`updated_at` sur `booking_requests` **seulement** — une demande sortie de
+`pending` étant définitive, `updated_at` y est fiable. Un type d'événement
+sans horodatage dédié fiable (ex. rejet de vérification, sans colonne propre)
+n'apparaît pas dans `AdminActivityType` plutôt que d'être approximé.
 
 ### Pourquoi `listing_availability` est `security definer`
 

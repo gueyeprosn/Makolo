@@ -2,6 +2,7 @@ import { PAGE_SIZE } from '@/constants';
 import { AppError } from '@/lib/errors';
 import { fromISODate, localId, normalize, slugify, todayISO, toISODate } from '@/lib/utils';
 import type {
+  AdminActivityEvent,
   AdminStats,
   AvailabilityResult,
   BookingRequest,
@@ -208,6 +209,10 @@ export const demoBackend: MakaloBackend = {
       city: values.city,
       bio: null,
       active: true,
+      verification_status: 'unverified',
+      verification_note: null,
+      verification_requested_at: null,
+      verified_at: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -448,6 +453,7 @@ export const demoBackend: MakaloBackend = {
       cover_image: placeholderFor(category?.slug),
       status: submit ? 'pending' : 'draft',
       moderation_reason: null,
+      moderated_at: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -916,6 +922,12 @@ export const demoBackend: MakaloBackend = {
     const me = requireProfile();
     if (me.role !== 'admin') throw new AppError('Accès refusé.', 'forbidden');
     const { profiles, listings, bookings, categories } = getState();
+    const gmvEstimate = bookings
+      .filter((b) => b.status === 'accepted')
+      .reduce((sum, b) => {
+        const listing = listings.find((l) => l.id === b.listing_id);
+        return sum + (listing ? listing.price * b.quantity : 0);
+      }, 0);
     return {
       users: profiles.length,
       providers: profiles.filter((p) => p.role === 'provider').length,
@@ -923,8 +935,11 @@ export const demoBackend: MakaloBackend = {
       listings: listings.length,
       pendingListings: listings.filter((l) => l.status === 'pending').length,
       requests: bookings.length,
+      pendingBookings: bookings.filter((b) => b.status === 'pending').length,
       acceptedRequests: bookings.filter((b) => b.status === 'accepted').length,
       categories: categories.length,
+      pendingVerifications: profiles.filter((p) => p.role === 'provider' && p.verification_status === 'pending').length,
+      gmvEstimate,
     } satisfies AdminStats;
   },
 
@@ -942,6 +957,9 @@ export const demoBackend: MakaloBackend = {
     if (filters.role && filters.role !== 'all') rows = rows.filter((p) => p.role === filters.role);
     if (filters.active && filters.active !== 'all') {
       rows = rows.filter((p) => (filters.active === 'active' ? p.active : !p.active));
+    }
+    if (filters.verification && filters.verification !== 'all') {
+      rows = rows.filter((p) => p.verification_status === filters.verification);
     }
     rows.sort((a, b) => b.created_at.localeCompare(a.created_at));
 
@@ -975,6 +993,131 @@ export const demoBackend: MakaloBackend = {
       updated = target;
     });
     if (!updated) throw new AppError('Utilisateur introuvable.', 'not_found');
+    return updated;
+  },
+
+  async adminListActivity(limit = 20) {
+    await delay(220);
+    const me = requireProfile();
+    if (me.role !== 'admin') throw new AppError('Accès refusé.', 'forbidden');
+    const { profiles, listings, bookings } = getState();
+    const events: AdminActivityEvent[] = [];
+
+    for (const b of bookings) {
+      events.push({
+        id: `${b.id}-created`,
+        type: 'booking_created',
+        label: 'Nouvelle demande de réservation',
+        actor: findProfile(b.client_id)?.full_name ?? null,
+        at: b.created_at,
+        href: '/admin/operations/reservations',
+      });
+      // Une demande sortie de `pending` est définitive (docs/DATABASE.md) :
+      // `updated_at` reflète alors exactement cette seule transition.
+      if (b.status === 'accepted' || b.status === 'rejected' || b.status === 'cancelled') {
+        events.push({
+          id: `${b.id}-${b.status}`,
+          type: b.status === 'accepted' ? 'booking_accepted' : b.status === 'rejected' ? 'booking_rejected' : 'booking_cancelled',
+          label:
+            b.status === 'accepted' ? 'Demande acceptée' : b.status === 'rejected' ? 'Demande refusée' : 'Demande annulée',
+          actor: findProfile(b.status === 'cancelled' ? b.client_id : b.provider_id)?.full_name ?? null,
+          at: b.updated_at,
+          href: '/admin/operations/reservations',
+        });
+      }
+    }
+
+    for (const l of listings) {
+      if ((l.status === 'published' || l.status === 'rejected') && l.moderated_at) {
+        events.push({
+          id: `${l.id}-${l.status}`,
+          type: l.status === 'published' ? 'listing_published' : 'listing_rejected',
+          label: l.status === 'published' ? `Annonce publiée : ${l.title}` : `Annonce refusée : ${l.title}`,
+          actor: findProfile(l.provider_id)?.full_name ?? null,
+          at: l.moderated_at,
+          href: '/admin/operations/annonces',
+        });
+      }
+    }
+
+    for (const p of profiles) {
+      if (p.role === 'provider') {
+        events.push({
+          id: `${p.id}-registered`,
+          type: 'provider_registered',
+          label: `Nouveau prestataire : ${p.full_name}`,
+          actor: p.full_name,
+          at: p.created_at,
+          href: '/admin/operations/prestataires',
+        });
+        if (p.verification_status === 'pending' && p.verification_requested_at) {
+          events.push({
+            id: `${p.id}-verif-requested`,
+            type: 'provider_verification_requested',
+            label: `Demande de vérification : ${p.full_name}`,
+            actor: p.full_name,
+            at: p.verification_requested_at,
+            href: '/admin/operations/prestataires',
+          });
+        }
+        if (p.verification_status === 'verified' && p.verified_at) {
+          events.push({
+            id: `${p.id}-verified`,
+            type: 'provider_verified',
+            label: `Prestataire vérifié : ${p.full_name}`,
+            actor: p.full_name,
+            at: p.verified_at,
+            href: '/admin/operations/prestataires',
+          });
+        }
+      }
+    }
+
+    return events.sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit);
+  },
+
+  /* Vérification prestataire ----------------------------------------------- */
+
+  async requestProviderVerification(userId: string) {
+    await delay(220);
+    const me = requireProfile();
+    if (me.id !== userId) throw new AppError('Accès refusé.', 'forbidden');
+    if (me.role !== 'provider') throw new AppError('Seul un prestataire peut demander une vérification.', 'forbidden');
+    if (me.verification_status !== 'unverified' && me.verification_status !== 'rejected') {
+      throw new AppError('Une vérification est déjà en cours ou validée.', 'invalid_state');
+    }
+    let updated: Profile | null = null;
+    mutate((draft) => {
+      const target = draft.profiles.find((p) => p.id === userId);
+      if (!target) return;
+      target.verification_status = 'pending';
+      target.verification_note = null;
+      target.verification_requested_at = new Date().toISOString();
+      target.updated_at = new Date().toISOString();
+      updated = target;
+    });
+    if (!updated) throw new AppError('Profil introuvable.', 'not_found');
+    return updated;
+  },
+
+  async adminSetProviderVerification(id: string, status, note) {
+    await delay(240);
+    const me = requireProfile();
+    if (me.role !== 'admin') throw new AppError('Accès refusé.', 'forbidden');
+    if (status === 'rejected' && !note?.trim()) {
+      throw new AppError('Un rejet de vérification doit être motivé.', 'invalid_input');
+    }
+    let updated: Profile | null = null;
+    mutate((draft) => {
+      const target = draft.profiles.find((p) => p.id === id);
+      if (!target) return;
+      target.verification_status = status;
+      target.verification_note = status === 'rejected' ? (note?.trim() || null) : null;
+      target.verified_at = status === 'verified' ? new Date().toISOString() : null;
+      target.updated_at = new Date().toISOString();
+      updated = target;
+    });
+    if (!updated) throw new AppError('Prestataire introuvable.', 'not_found');
     return updated;
   },
 };

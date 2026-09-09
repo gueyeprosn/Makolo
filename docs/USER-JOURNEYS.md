@@ -56,24 +56,39 @@ téléphone révélé après acceptation (`BookingCard`).
 | Gérer les annonces | `/prestataire/annonces` | Onglets par statut, archivage, suppression avec confirmation |
 | Répondre aux demandes | `/prestataire/demandes` | Accepter (vérifie le stock réel) ou refuser |
 | Profil | `/profil` | Le champ « bio » y est présenté comme la présentation publique de l'activité |
+| Vérification du profil | `/prestataire` (carte dédiée) | Demande de vérification d'identité (`requestProviderVerification`) ; décision réservée à l'admin |
 
-Il n'existe **pas** de vérification d'identité prestataire, pas de tableau de
-revenus, pas d'agenda de blocage manuel — ce sont des chantiers de
-`docs/ROADMAP.md` (points 4 et 7), pas des étapes de ce parcours aujourd'hui.
+Il n'existe **pas** de tableau de revenus (suppose un encaissement réel,
+chantier 2, pas seulement sa fondation), pas d'agenda de blocage manuel
+(chantier 7) — ce sont des chantiers de `docs/ROADMAP.md`, pas des étapes de
+ce parcours aujourd'hui. La vérification d'identité, elle, est réellement construite
+(voir ci-dessous) — c'est un signal de confiance affiché sur le profil, pas
+une condition pour publier une annonce.
 
 ## Administrateur
 
+Trois espaces, par audience plutôt qu'un back-office unique : **Direction**
+(pilotage), **Opérations** (travail quotidien de validation), **Contenu**
+(CMS). Les entrées non encore construites (litiges, support, pages, FAQ,
+bannières, articles, SEO, promotions, médias) restent visibles dans le menu
+mais désactivées, marquées « Bientôt disponible » — jamais masquées en
+silence, jamais simulées.
+
 ```
-/admin → /admin/annonces?statut=pending → /admin/utilisateurs → /admin/categories → /admin/demandes
+/admin → /admin/operations/prestataires → /admin/operations/utilisateurs
+       → /admin/operations/annonces → /admin/operations/reservations
+       → /admin/operations/calendrier → /admin/cms/categories
 ```
 
 | Étape | Route | Ce qui s'y passe réellement |
 |---|---|---|
-| Tableau de bord | `/admin` | Statistiques globales, répartition des comptes |
-| Modération | `/admin/annonces` | Publier / refuser avec motif obligatoire / archiver / supprimer |
-| Utilisateurs | `/admin/utilisateurs` | Recherche, changement de rôle, activation/désactivation |
-| Catégories | `/admin/categories` | CRUD complet |
-| Demandes | `/admin/demandes` | Lecture seule — la décision reste au prestataire concerné |
+| Tableau de bord (Direction) | `/admin` | KPI (dont l'activité estimée GMV, une estimation, pas un revenu confirmé), panneau « Action requise », fil d'activité à horodatage fiable |
+| Prestataires (Opérations) | `/admin/operations/prestataires` | Vérifier / rejeter (motif obligatoire) une demande de vérification d'identité — distinct de la modération d'annonce |
+| Utilisateurs (Opérations) | `/admin/operations/utilisateurs` | Recherche, changement de rôle, activation/désactivation |
+| Annonces (Opérations) | `/admin/operations/annonces` | Publier / refuser avec motif obligatoire / archiver / supprimer |
+| Réservations (Opérations) | `/admin/operations/reservations` | Lecture seule — la décision reste au prestataire concerné |
+| Calendrier (Opérations) | `/admin/operations/calendrier` | Vue mensuelle réelle de l'occupation du matériel, construite depuis les demandes acceptées/en attente |
+| Catégories (Contenu) | `/admin/cms/categories` | CRUD complet |
 
 ## Ce qui protège chaque parcours de sortir de son rôle
 

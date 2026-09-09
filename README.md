@@ -119,7 +119,7 @@ src/
 │   ├── booking/       BookingCard, modale de demande de réservation
 │   ├── dashboard/     Gabarit des espaces connectés, StatCard, PageHeader
 │   ├── auth/          Gabarit des pages d'authentification
-│   ├── admin/         (réservé aux composants spécifiques au back-office)
+│   ├── admin/         AdminLayout (back-office à 3 niveaux : Direction/Opérations/Contenu)
 │   └── common/        Logo, images tolérantes aux pannes, ErrorBoundary
 ├── pages/             Une page par route (public, auth, client, provider, admin)
 ├── routes/            Gardes de route et gestion du défilement
