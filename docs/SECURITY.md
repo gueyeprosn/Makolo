@@ -139,3 +139,10 @@ ne contrôle pas.
      annonce publiée → **autorisé** ;
    - client → lecture des demandes d'un autre client → 0 ligne ;
    - client → `role = 'admin'` sur son propre profil → refusé.
+   - client → deux demandes `pending` sur des périodes qui se chevauchent
+     (même annonce, même client) → la deuxième insertion est rejetée par la
+     contrainte d'exclusion GiST `bookings_no_duplicate_pending` (`23P01`),
+     y compris en cas d'insertions concurrentes (contrairement à une
+     vérification applicative seule, la contrainte est portée par Postgres) ;
+   - client → date de début antérieure à aujourd'hui → refusé par
+     `bookings_insert_client` (`requested_from >= current_date`).

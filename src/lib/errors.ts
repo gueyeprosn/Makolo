@@ -36,6 +36,7 @@ const MESSAGES: Record<string, string> = {
 
   // Postgres
   '23505': 'Cet élément existe déjà.',
+  '23P01': 'Vous avez déjà une demande en attente sur une période qui chevauche celle-ci.',
   '23503': 'Cette action est impossible car l’élément est lié à d’autres données.',
   '23514': 'Les informations fournies ne respectent pas les règles de la plateforme.',
   '42501': "Vous n'avez pas les droits nécessaires pour effectuer cette action.",

@@ -36,7 +36,8 @@ export interface AdminUserFilters {
 
 export interface CreateBookingInput {
   listing_id: string;
-  requested_date: string;
+  requested_from: string;
+  requested_to: string;
   quantity: number;
   message?: string;
 }
@@ -95,7 +96,7 @@ export interface MakaloBackend {
   removeFavorite(userId: string, listingId: string): Promise<void>;
 
   /* Réservations ---------------------------------------------------------- */
-  getAvailability(listingId: string, date: string): Promise<AvailabilityResult>;
+  getAvailability(listingId: string, from: string, to: string): Promise<AvailabilityResult>;
   createBooking(input: CreateBookingInput): Promise<void>;
   listClientBookings(clientId: string): Promise<BookingRequestWithRelations[]>;
   listProviderBookings(providerId: string): Promise<BookingRequestWithRelations[]>;

@@ -7,6 +7,10 @@ import { Button } from './button';
 import { formatDate, fromISODate, toISODate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
+function maxDate(a: Date, b: Date): Date {
+  return a > b ? a : b;
+}
+
 interface DatePickerProps {
   value?: string;
   onChange: (value: string) => void;
@@ -15,6 +19,12 @@ interface DatePickerProps {
   disabled?: boolean;
   /** Empêche la sélection d'une date passée (par défaut : activé). */
   disablePast?: boolean;
+  /**
+   * Date minimale sélectionnable (ISO `YYYY-MM-DD`), en plus de `disablePast`.
+   * Utile pour une date de fin qui ne doit jamais précéder une date de début
+   * déjà choisie (voir `BookingDialog`).
+   */
+  minDate?: string;
   'aria-invalid'?: boolean;
   'aria-describedby'?: string;
 }
@@ -27,12 +37,14 @@ export function DatePicker({
   placeholder = 'Choisir une date',
   disabled,
   disablePast = true,
+  minDate,
   ...aria
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
   const selected = value ? fromISODate(value) : undefined;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const floor = minDate ? (disablePast ? maxDate(fromISODate(minDate), today) : fromISODate(minDate)) : today;
 
   return (
     <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
@@ -60,7 +72,7 @@ export function DatePicker({
             locale={fr}
             selected={selected}
             defaultMonth={selected}
-            disabled={disablePast ? { before: today } : undefined}
+            disabled={disablePast || minDate ? { before: floor } : undefined}
             onSelect={(date) => {
               if (!date) return;
               onChange(toISODate(date));

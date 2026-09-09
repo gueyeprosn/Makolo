@@ -45,7 +45,7 @@ const LISTING_SELECT = `
 `;
 
 const BOOKING_SELECT = `
-  id, listing_id, client_id, provider_id, requested_date, quantity, message, status, created_at, updated_at,
+  id, listing_id, client_id, provider_id, requested_from, requested_to, quantity, message, status, created_at, updated_at,
   listing:listings ( id, title, slug, cover_image, price, price_unit, city, quantity ),
   client:profiles!booking_requests_client_id_fkey ( id, full_name, phone, city, avatar_url ),
   provider:profiles!booking_requests_provider_id_fkey ( id, full_name, phone, city, avatar_url )
@@ -571,11 +571,17 @@ export const supabaseBackend: MakaloBackend = {
 
   /* Réservations ---------------------------------------------------------- */
 
-  async getAvailability(listingId: string, date: string) {
+  async getAvailability(listingId: string, from: string, to: string) {
     const client = requireSupabase();
     // Fonction SQL `SECURITY DEFINER` : elle ne renvoie que des agrégats, jamais
-    // les demandes des autres clients (voir 01_schema.sql).
-    const { data, error } = await client.rpc('listing_availability', { p_listing_id: listingId, p_date: date });
+    // les demandes des autres clients (voir 01_schema.sql). Calcule le pire
+    // jour de la période, pas seulement son ensemble — voir 01_schema.sql,
+    // section 11, et docs/specs/BOOKING-LIFECYCLE.md.
+    const { data, error } = await client.rpc('listing_availability', {
+      p_listing_id: listingId,
+      p_from: from,
+      p_to: to,
+    });
     if (error) throw toAppError(error);
     const row = (Array.isArray(data) ? data[0] : data) as
       | { total_quantity: number; accepted_quantity: number; pending_quantity: number; is_active: boolean; listing_status: ListingStatus }
@@ -607,10 +613,14 @@ export const supabaseBackend: MakaloBackend = {
       throw new AppError('Vous ne pouvez pas réserver votre propre annonce.', 'forbidden');
     }
 
-    const availability = await this.getAvailability(input.listing_id, input.requested_date);
+    if (input.requested_to < input.requested_from) {
+      throw new AppError('La date de fin doit être identique ou postérieure à la date de début.', 'invalid_date');
+    }
+
+    const availability = await this.getAvailability(input.listing_id, input.requested_from, input.requested_to);
     if (input.quantity > availability.remaining) {
       throw new AppError(
-        `Quantité indisponible à cette date : il reste ${availability.remaining} unité(s).`,
+        `Quantité indisponible sur cette période : il reste au maximum ${availability.remaining} unité(s) selon les jours.`,
         'unavailable',
       );
     }
@@ -619,14 +629,20 @@ export const supabaseBackend: MakaloBackend = {
       listing_id: input.listing_id,
       client_id: clientId,
       provider_id: row.provider_id,
-      requested_date: input.requested_date,
+      requested_from: input.requested_from,
+      requested_to: input.requested_to,
       quantity: input.quantity,
       message: input.message?.trim() || null,
       status: 'pending',
     });
     if (error) {
-      if ((error as { code?: string }).code === '23505') {
-        throw new AppError('Vous avez déjà une demande en attente pour cette offre à cette date.', '23505');
+      // `bookings_no_duplicate_pending` (exclusion GiST) renvoie ce code pour
+      // toute période qui chevauche une demande déjà en attente.
+      if ((error as { code?: string }).code === '23P01' || (error as { code?: string }).code === '23505') {
+        throw new AppError(
+          'Vous avez déjà une demande en attente pour cette offre sur une période qui chevauche celle-ci.',
+          '23505',
+        );
       }
       throw toAppError(error);
     }

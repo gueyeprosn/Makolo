@@ -54,8 +54,12 @@ export function BookingCard({ booking, perspective, actions }: BookingCardProps)
         <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-doux">
           <div className="inline-flex items-center gap-1.5">
             <CalendarDays className="size-3.5" aria-hidden="true" />
-            <dt className="sr-only">Date souhaitée</dt>
-            <dd>{formatDate(booking.requested_date)}</dd>
+            <dt className="sr-only">Période souhaitée</dt>
+            <dd>
+              {booking.requested_from === booking.requested_to
+                ? formatDate(booking.requested_from)
+                : `${formatDate(booking.requested_from)} → ${formatDate(booking.requested_to)}`}
+            </dd>
           </div>
           <div className="inline-flex items-center gap-1.5">
             <Package className="size-3.5" aria-hidden="true" />

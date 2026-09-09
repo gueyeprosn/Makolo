@@ -28,6 +28,10 @@ const isoDate = (daysAhead: number) => new Date(now + daysAhead * DAY).toISOStri
 export const DEMO_DATES = {
   inTwoWeeks: isoDate(14),
   inThreeWeeks: isoDate(21),
+  // Reprise deux jours après l'événement : illustre une réservation sur une
+  // période plutôt qu'un jour unique (livraison la veille, cérémonie, reprise
+  // le surlendemain — voir docs/specs/BOOKING-LIFECYCLE.md).
+  inThreeWeeksReturn: isoDate(23),
   inOneMonth: isoDate(30),
 };
 
@@ -532,7 +536,8 @@ export const demoBookings: BookingRequest[] = [
     listing_id: 'lst-chaise-napoleon',
     client_id: 'usr-client',
     provider_id: 'usr-provider',
-    requested_date: DEMO_DATES.inTwoWeeks,
+    requested_from: DEMO_DATES.inTwoWeeks,
+    requested_to: DEMO_DATES.inTwoWeeks,
     quantity: 120,
     message: "Bonjour, je souhaite louer ce matériel pour le mariage de ma sœur à Ouakam.",
     status: 'accepted',
@@ -544,7 +549,8 @@ export const demoBookings: BookingRequest[] = [
     listing_id: 'lst-pack-sono-mariage',
     client_id: 'usr-client',
     provider_id: 'usr-provider-2',
-    requested_date: DEMO_DATES.inTwoWeeks,
+    requested_from: DEMO_DATES.inTwoWeeks,
+    requested_to: DEMO_DATES.inTwoWeeks,
     quantity: 1,
     message: 'Bonjour, je souhaite louer ce matériel pour mon événement.',
     status: 'pending',
@@ -556,9 +562,12 @@ export const demoBookings: BookingRequest[] = [
     listing_id: 'lst-tente-10x20',
     client_id: 'usr-client-2',
     provider_id: 'usr-provider-3',
-    requested_date: DEMO_DATES.inThreeWeeks,
+    // Réservation sur trois jours : livraison la veille, cérémonie, reprise
+    // le surlendemain.
+    requested_from: DEMO_DATES.inThreeWeeks,
+    requested_to: DEMO_DATES.inThreeWeeksReturn,
     quantity: 1,
-    message: "Besoin d'une tente pour un baptême à Thiès, environ 200 invités.",
+    message: "Besoin d'une tente pour un baptême à Thiès, environ 200 invités. Livraison la veille et reprise le surlendemain.",
     status: 'pending',
     created_at: iso(2),
     updated_at: iso(2),
@@ -568,7 +577,8 @@ export const demoBookings: BookingRequest[] = [
     listing_id: 'lst-table-ronde',
     client_id: 'usr-client',
     provider_id: 'usr-provider',
-    requested_date: DEMO_DATES.inOneMonth,
+    requested_from: DEMO_DATES.inOneMonth,
+    requested_to: DEMO_DATES.inOneMonth,
     quantity: 15,
     message: 'Réception de fin d’année, 150 convives.',
     status: 'pending',
@@ -580,7 +590,8 @@ export const demoBookings: BookingRequest[] = [
     listing_id: 'lst-guirlande',
     client_id: 'usr-client',
     provider_id: 'usr-provider-4',
-    requested_date: DEMO_DATES.inTwoWeeks,
+    requested_from: DEMO_DATES.inTwoWeeks,
+    requested_to: DEMO_DATES.inTwoWeeks,
     quantity: 4,
     message: null,
     status: 'rejected',

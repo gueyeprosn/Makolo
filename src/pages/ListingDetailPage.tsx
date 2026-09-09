@@ -49,7 +49,9 @@ export function ListingDetailPage() {
   const [bookingOpen, setBookingOpen] = React.useState(false);
   const [activeImage, setActiveImage] = React.useState(0);
 
-  const availability = useAvailability(listing?.id, selectedDate || undefined);
+  // Vérification rapide d'un jour unique avant d'ouvrir la modale, où la
+  // période complète (livraison → reprise) est demandée si nécessaire.
+  const availability = useAvailability(listing?.id, selectedDate || undefined, selectedDate || undefined);
 
   useDocumentTitle(
     listing?.title,

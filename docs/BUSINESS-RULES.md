@@ -33,9 +33,11 @@ Chaque règle indique où elle est **appliquée** (autorité) et où elle est
 |---|---|---|
 | Seules les demandes `accepted` consomment le stock ; `pending` est signalé sans bloquer | `listing_availability()` / `buildAvailability()` | badge « Disponible / En cours de confirmation / Indisponible » |
 | Une acceptation qui dépasserait le stock est refusée, même en cas de concurrence | `check_booking_capacity()` (trigger) | vérifié avant l'appel dans `updateBookingStatus()` |
-| Une demande porte sur une date unique (limite connue) | schéma actuel | voir `ROADMAP.md` — chantier n°1 |
-| Un client ne peut avoir deux demandes `pending` pour la même annonce à la même date | index unique partiel `bookings_no_duplicate_pending` | message d'erreur dédié |
-| La date demandée ne peut pas être dans le passé | `bookingSchema` (Zod, comparaison à `todayISO()`) puis policy RLS (`requested_date >= current_date`) | `DatePicker` désactive les jours passés |
+| Une demande porte sur une période (`requested_from` → `requested_to`), pas une date unique | schéma SQL, les deux backends | `BookingDialog` (deux champs, un seul en location d'un jour) |
+| La disponibilité et la capacité sont calculées jour par jour sur toute la période, en retenant le pire jour | `listing_availability()` / `check_booking_capacity()` (SQL) et `bookedQuantities()` (démo) | badge de disponibilité recalculé à chaque changement de période |
+| La date de fin ne peut pas précéder la date de début | `CHECK booking_valid_range` (SQL), `bookingSchema` (Zod, `.refine`) | `DatePicker` de fin borné par `minDate` |
+| Un client ne peut avoir deux demandes `pending` pour la même annonce sur des périodes qui se chevauchent | contrainte d'exclusion GiST `bookings_no_duplicate_pending` | message d'erreur dédié (code `23P01`) |
+| La date de début ne peut pas être dans le passé | `bookingSchema` (Zod, comparaison à `todayISO()`) puis policy RLS (`requested_from >= current_date`) | `DatePicker` désactive les jours passés |
 | Un prestataire ne réserve pas sa propre annonce | policy RLS (`provider_id <> auth.uid()`) | `canRequestBooking()` |
 | `provider_id` d'une demande est toujours déduit de l'annonce, jamais du client | `enforce_booking_provider()` (trigger `before insert`) | le formulaire de réservation ne transmet pas ce champ |
 

@@ -72,7 +72,7 @@ Une demande sortie de `pending` est définitive. Aucune transition retour.
 | `handle_new_user()` | trigger `security definer` | Crée le profil à l'inscription et **force le rôle** à `client` ou `provider` |
 | `is_admin()` | fonction `security definer` | Évite la récursion des policies sur `profiles` |
 | `current_role_is(role)` | fonction `security definer` | Idem, par rôle |
-| `listing_availability(id, date)` | fonction `security definer` | Renvoie **uniquement des agrégats** de disponibilité |
+| `listing_availability(id, from, to)` | fonction `security definer` | Renvoie **uniquement des agrégats** de disponibilité sur une période |
 | `check_booking_capacity()` | trigger `security definer` | Refuse une acceptation dépassant le stock |
 | `enforce_booking_provider()` | trigger | Déduit `provider_id` de l'annonce, jamais du client |
 | `enforce_listing_status_transition()` | trigger | Bloque l'auto-publication |
@@ -82,7 +82,7 @@ Une demande sortie de `pending` est définitive. Aucune transition retour.
 
 ### Pourquoi `listing_availability` est `security definer`
 
-Un client doit savoir combien d'unités restent libres à une date, **sans**
+Un client doit savoir combien d'unités restent libres sur une période, **sans**
 pouvoir lire les demandes des autres clients. La fonction ne renvoie que des
 totaux :
 
@@ -92,6 +92,16 @@ total_quantity | accepted_quantity | pending_quantity | is_active | listing_stat
 
 Aucune ligne nominative ne sort. Une annonce non publiée n'est interrogeable
 que par son propriétaire ou un administrateur.
+
+`p_from`/`p_to` acceptent une période de plusieurs jours (`p_from = p_to` pour
+une location d'un seul jour). Le calcul agrège **jour par jour** via
+`generate_series(p_from, p_to, interval '1 day')`, puis retient le **pire
+jour** (`max`) : deux réservations acceptées sur des sous-périodes disjointes
+(ex. 1-5 et 10-15) ne se cumulent jamais à tort face à une demande qui les
+couvre sans les chevaucher elles-mêmes (ex. 1-15). `check_booking_capacity()`
+applique exactement le même calcul côté trigger, et `bookedQuantities()`
+(`src/services/demo-backend.ts`) le reproduit côté démo — voir
+`docs/specs/BOOKING-LIFECYCLE.md`.
 
 ## Règle de disponibilité
 
@@ -122,7 +132,7 @@ listings          category_id · provider_id · city · status · created_at · 
                   (status, created_at) partiel sur status='published'
                   GIN plein texte français sur (title || description)
 booking_requests  listing_id · client_id · provider_id · status
-                  (listing_id, requested_date, status)  ← calcul de disponibilité
+                  (listing_id, status, requested_from, requested_to)  ← calcul de disponibilité
 favorites         user_id · listing_id
 profiles          role · city · active · created_at
 ```
@@ -130,25 +140,27 @@ profiles          role · city · active · created_at
 ## Contraintes notables
 
 - `favorites_unique (user_id, listing_id)` — pas de doublon de favori.
-- `bookings_no_duplicate_pending` — index unique partiel : une seule demande en
-  attente par (annonce, client, date).
+- `booking_valid_range` — `CHECK (requested_to >= requested_from)`.
+- `bookings_no_duplicate_pending` — contrainte d'**exclusion GiST**
+  (extension `btree_gist`) : pour un même `(listing_id, client_id)`, deux
+  demandes `pending` dont les périodes (`daterange(requested_from,
+  requested_to, '[]')`) se chevauchent sont rejetées **au niveau base**,
+  sans condition de course possible. Postgres renvoie le code `23P01`
+  (`exclusion_violation`), traduit côté client par
+  `lib/errors.ts` : « Vous avez déjà une demande en attente sur une période
+  qui chevauche celle-ci. »
 - `booking_not_self` — `client_id <> provider_id`.
 - Bornes `CHECK` sur les longueurs de texte, `price > 0`, `quantity >= 1`.
 
-## Limite connue : la réservation mono-date
+## Réservation sur une période
 
-`booking_requests.requested_date` est une **date unique**. Une location réelle
-court de la livraison la veille à la reprise le lendemain. Le calcul de
-disponibilité est donc optimiste dès qu'un même lot est loué deux week-ends
-consécutifs avec chevauchement logistique.
-
-C'est le chantier n°1 de `ROADMAP.md`. La migration devra :
-
-1. ajouter `requested_from` / `requested_to` (dates) ;
-2. reprendre l'existant avec `from = to = requested_date` ;
-3. réécrire `listing_availability` en chevauchement de plages
-   (`from <= p_date AND to >= p_date`, puis en intervalle) ;
-4. mettre à jour `buildAvailability()` et ses tests.
+`booking_requests` porte `requested_from` / `requested_to` (bornes incluses).
+Une location d'un seul jour a `requested_from = requested_to`. Ce modèle a
+remplacé la date unique d'origine (chantier n°1 de `ROADMAP.md`, livré) :
+extension `btree_gist`, contrainte d'exclusion, `listing_availability(id,
+from, to)` et `check_booking_capacity()` réécrits en agrégation jour par jour
+(voir plus haut), et les deux backends alignés. Détails et scénarios dans
+`docs/specs/BOOKING-LIFECYCLE.md`.
 
 ## Faire évoluer le schéma
 

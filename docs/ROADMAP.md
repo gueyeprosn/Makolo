@@ -11,30 +11,34 @@ l'adresser.
 - **Bloquant** : rien en aval ne peut être construit sans ce chantier.
 - **Fondation** : touche le schéma de données ; migration SQL requise.
 
-## 1. Réservation sur une période — Bloquant · Fondation
+## 1. Réservation sur une période — Bloquant · Fondation — ✅ Livré
 
-**Problème réel** (voir `docs/DATABASE.md`, section « Limite connue ») :
-`booking_requests.requested_date` est une date unique. Une location court en
-réalité de la livraison la veille à la reprise le lendemain — trois jours de
-stock immobilisé comptés comme un seul. Le calcul de disponibilité est faux
-dès la deuxième réservation qui chevauche la même période.
+**Problème réel** (résolu) : `booking_requests.requested_date` était une date
+unique. Une location court en réalité de la livraison la veille à la reprise
+le lendemain — trois jours de stock immobilisé comptés comme un seul. Le
+calcul de disponibilité était faux dès la deuxième réservation qui chevauchait
+la même période.
 
-**Travail** :
-1. Migration SQL : ajouter `requested_from` / `requested_to` (`date`),
-   reprendre l'existant avec `from = to = requested_date`, supprimer
-   `requested_date` dans une migration séparée une fois le code basculé.
-2. Réécrire `listing_availability()` en test de chevauchement de plages
-   (`from <= p_to AND to >= p_from`), plus l'index
-   `bookings_no_duplicate_pending` qui devient un test de recouvrement plutôt
-   que d'égalité.
-3. Répercuter dans `buildAvailability()` (les deux backends) et dans
-   `BookingDialog` (deux sélecteurs de date, ou un sélecteur de plage).
-4. Étendre `tests/unit/availability.test.ts` aux cas de chevauchement partiel.
+**Livré** :
+1. Migration SQL (dans `01_schema.sql`, réexécutable) : `requested_from` /
+   `requested_to` (`date`), `CHECK booking_valid_range`, extension
+   `btree_gist` et contrainte d'exclusion GiST
+   `bookings_no_duplicate_pending` sur `daterange(requested_from,
+   requested_to, '[]')` (recouvrement, plus une simple égalité).
+2. `listing_availability(id, from, to)` et `check_booking_capacity()`
+   réécrits en agrégation jour par jour (`generate_series` + pire jour), en
+   miroir exact.
+3. Répercuté dans `buildAvailability()`/`bookedQuantities()` (les deux
+   backends) et dans `BookingDialog` (deux sélecteurs de date, la fin suit le
+   début tant qu'elle n'est pas touchée).
+4. `tests/unit/booking-overlap.test.ts` couvre les chevauchements (partiel,
+   contact borne à borne, périodes disjointes) ; validé de bout en bout par
+   navigateur réel (double réservation chevauchante refusée, période
+   contiguë acceptée) et par un audit RLS sur PostgreSQL réel.
 
-**Débloque** : tout calcul de disponibilité correct, donc tout ce qui suit.
+**A débloqué** : un calcul de disponibilité correct, donc tout ce qui suit.
 
-Spécification détaillée du cycle de statut qui en découle :
-`docs/specs/BOOKING-LIFECYCLE.md`.
+Spécification détaillée du cycle de statut : `docs/specs/BOOKING-LIFECYCLE.md`.
 
 ## 2. Encaissement d'acompte — Bloquant · Fondation
 

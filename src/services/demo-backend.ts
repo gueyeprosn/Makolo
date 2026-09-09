@@ -1,6 +1,6 @@
 import { PAGE_SIZE } from '@/constants';
 import { AppError } from '@/lib/errors';
-import { localId, normalize, slugify, todayISO } from '@/lib/utils';
+import { fromISODate, localId, normalize, slugify, todayISO, toISODate } from '@/lib/utils';
 import type {
   AdminStats,
   AvailabilityResult,
@@ -110,12 +110,53 @@ function emitAuth(): void {
   listeners.forEach((listener) => listener(user));
 }
 
-/** Somme des quantités déjà engagées pour une annonce à une date donnée. */
-function bookedQuantities(listingId: string, date: string) {
-  const rows = getState().bookings.filter((b) => b.listing_id === listingId && b.requested_date === date);
-  const accepted = rows.filter((b) => b.status === 'accepted').reduce((sum, b) => sum + b.quantity, 0);
-  const pending = rows.filter((b) => b.status === 'pending').reduce((sum, b) => sum + b.quantity, 0);
-  return { accepted, pending };
+/**
+ * Vrai si deux périodes [aFrom, aTo] et [bFrom, bTo] (dates ISO) se chevauchent.
+ * Exportée pour test unitaire direct — miroir de l'opérateur `&&` de
+ * `daterange(...)` utilisé par la contrainte d'exclusion GiST côté SQL.
+ */
+export function rangesOverlap(aFrom: string, aTo: string, bFrom: string, bTo: string): boolean {
+  return aFrom <= bTo && aTo >= bFrom;
+}
+
+/** Toutes les dates ISO (YYYY-MM-DD) d'une période, bornes incluses. */
+export function eachDateInRange(from: string, to: string): string[] {
+  const days: string[] = [];
+  let cursor = fromISODate(from);
+  const end = fromISODate(to);
+  while (cursor <= end) {
+    days.push(toISODate(cursor));
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1);
+  }
+  return days;
+}
+
+/**
+ * Quantités déjà engagées pour une annonce sur une période, jour par jour,
+ * en ne retenant que le pire jour — miroir exact de `check_booking_capacity()`
+ * et `listing_availability()` côté SQL (scripts/sql/01_schema.sql). Les deux
+ * doivent toujours s'accorder : voir docs/specs/BOOKING-LIFECYCLE.md.
+ *
+ * Deux réservations acceptées sur des sous-périodes disjointes ne doivent pas
+ * se cumuler à tort pour une période qui les couvre sans les chevaucher
+ * elles-mêmes (ex. 1-5 et 10-15 face à une demande sur 1-15).
+ */
+function bookedQuantities(listingId: string, from: string, to: string, excludeBookingId?: string) {
+  const candidates = getState().bookings.filter((b) => b.listing_id === listingId && b.id !== excludeBookingId);
+  let worstAccepted = 0;
+  let worstPending = 0;
+  for (const day of eachDateInRange(from, to)) {
+    let dayAccepted = 0;
+    let dayPending = 0;
+    for (const b of candidates) {
+      if (!rangesOverlap(b.requested_from, b.requested_to, day, day)) continue;
+      if (b.status === 'accepted') dayAccepted += b.quantity;
+      else if (b.status === 'pending') dayPending += b.quantity;
+    }
+    worstAccepted = Math.max(worstAccepted, dayAccepted);
+    worstPending = Math.max(worstPending, dayPending);
+  }
+  return { accepted: worstAccepted, pending: worstPending };
 }
 
 export const demoBackend: MakaloBackend = {
@@ -657,11 +698,11 @@ export const demoBackend: MakaloBackend = {
 
   /* Réservations ---------------------------------------------------------- */
 
-  async getAvailability(listingId: string, date: string) {
+  async getAvailability(listingId: string, from: string, to: string) {
     await delay(200);
     const listing = getState().listings.find((l) => l.id === listingId);
     if (!listing) throw new AppError('Annonce introuvable.', 'not_found');
-    const { accepted, pending } = bookedQuantities(listingId, date);
+    const { accepted, pending } = bookedQuantities(listingId, from, to);
     return buildAvailability(listing, accepted, pending);
   },
 
@@ -676,35 +717,41 @@ export const demoBackend: MakaloBackend = {
     if (listing.provider_id === me.id) {
       throw new AppError('Vous ne pouvez pas réserver votre propre annonce.', 'forbidden');
     }
-    if (input.requested_date < todayISO()) {
+    if (input.requested_from < todayISO()) {
       throw new AppError('La date doit être aujourd’hui ou ultérieure.', 'invalid_date');
     }
-    const { accepted, pending } = bookedQuantities(input.listing_id, input.requested_date);
+    if (input.requested_to < input.requested_from) {
+      throw new AppError('La date de fin doit être identique ou postérieure à la date de début.', 'invalid_date');
+    }
+    const { accepted } = bookedQuantities(input.listing_id, input.requested_from, input.requested_to);
     if (input.quantity > listing.quantity - accepted) {
       throw new AppError(
-        `Quantité indisponible à cette date : il reste ${Math.max(0, listing.quantity - accepted)} unité(s).`,
+        `Quantité indisponible sur cette période : il reste au maximum ${Math.max(0, listing.quantity - accepted)} unité(s) selon les jours.`,
         'unavailable',
       );
     }
+    // Reflète l'exclusion GiST côté SQL (`bookings_no_duplicate_pending`) :
+    // aucune deuxième demande en attente du même client, sur la même annonce,
+    // dont la période chevauche celle-ci.
     if (
       getState().bookings.some(
         (b) =>
           b.listing_id === input.listing_id &&
           b.client_id === me.id &&
-          b.requested_date === input.requested_date &&
-          b.status === 'pending',
+          b.status === 'pending' &&
+          rangesOverlap(b.requested_from, b.requested_to, input.requested_from, input.requested_to),
       )
     ) {
-      throw new AppError('Vous avez déjà une demande en attente pour cette offre à cette date.', '23505');
+      throw new AppError('Vous avez déjà une demande en attente pour cette offre sur une période qui chevauche celle-ci.', '23505');
     }
-    void pending;
 
     const booking: BookingRequest = {
       id: localId(),
       listing_id: input.listing_id,
       client_id: me.id,
       provider_id: listing.provider_id,
-      requested_date: input.requested_date,
+      requested_from: input.requested_from,
+      requested_to: input.requested_to,
       quantity: input.quantity,
       message: input.message?.trim() || null,
       status: 'pending',
@@ -772,10 +819,10 @@ export const demoBackend: MakaloBackend = {
 
     if (status === 'accepted') {
       const listing = getState().listings.find((l) => l.id === booking.listing_id);
-      const { accepted } = bookedQuantities(booking.listing_id, booking.requested_date);
+      const { accepted } = bookedQuantities(booking.listing_id, booking.requested_from, booking.requested_to, booking.id);
       if (listing && booking.quantity > listing.quantity - accepted) {
         throw new AppError(
-          `Stock insuffisant à cette date : il reste ${Math.max(0, listing.quantity - accepted)} unité(s).`,
+          `Stock insuffisant sur cette période : il reste au maximum ${Math.max(0, listing.quantity - accepted)} unité(s) selon les jours.`,
           'unavailable',
         );
       }

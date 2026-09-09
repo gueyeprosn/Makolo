@@ -8,6 +8,10 @@
 -- ===========================================================================
 
 create extension if not exists "pgcrypto";
+-- Permet une exclusion GiST mêlant égalité (listing_id, client_id) et
+-- chevauchement de plages de dates dans une même contrainte (voir la table
+-- `booking_requests` : contrainte `bookings_no_duplicate_pending`).
+create extension if not exists "btree_gist";
 
 -- ---------------------------------------------------------------------------
 -- 1. Types énumérés
@@ -259,26 +263,46 @@ create table if not exists public.booking_requests (
   listing_id     uuid not null references public.listings(id) on delete cascade,
   client_id      uuid not null references public.profiles(id) on delete cascade,
   provider_id    uuid not null references public.profiles(id) on delete cascade,
-  requested_date date not null,
+  -- Période complète pendant laquelle le matériel est chez le client (de la
+  -- livraison à la reprise), pas seulement la date de l'événement : voir
+  -- docs/specs/BOOKING-LIFECYCLE.md. Une location d'un seul jour a
+  -- requested_from = requested_to.
+  requested_from date not null,
+  requested_to   date not null,
   quantity       integer not null check (quantity >= 1),
   message        text check (message is null or char_length(message) <= 600),
   status         public.booking_status not null default 'pending',
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now(),
   -- Un client ne peut pas être son propre prestataire.
-  constraint booking_not_self check (client_id <> provider_id)
+  constraint booking_not_self check (client_id <> provider_id),
+  constraint booking_valid_range check (requested_to >= requested_from)
 );
 
 create index if not exists bookings_listing_idx  on public.booking_requests (listing_id);
 create index if not exists bookings_client_idx   on public.booking_requests (client_id);
 create index if not exists bookings_provider_idx on public.booking_requests (provider_id);
 create index if not exists bookings_status_idx   on public.booking_requests (status);
-create index if not exists bookings_date_idx     on public.booking_requests (listing_id, requested_date, status);
+-- Ordre des colonnes pensé pour la requête de chevauchement de
+-- `listing_availability()` / `check_booking_capacity()` : égalité sur
+-- listing_id et status, puis parcours par intervalle sur les dates.
+create index if not exists bookings_range_idx
+  on public.booking_requests (listing_id, status, requested_from, requested_to);
 
--- Empêche les doublons de demande en attente pour la même offre et la même date.
-create unique index if not exists bookings_no_duplicate_pending
-  on public.booking_requests (listing_id, client_id, requested_date)
-  where status = 'pending';
+-- Empêche deux demandes EN ATTENTE du même client, sur la même annonce, avec
+-- des périodes qui se chevauchent (pas seulement une date identique : deux
+-- plages qui se recouvrent partiellement doivent être bloquées de la même
+-- façon). Une exclusion GiST est la seule contrainte SQL native capable
+-- d'exprimer « pas de chevauchement », y compris combinée à une égalité.
+alter table public.booking_requests drop constraint if exists bookings_no_duplicate_pending;
+alter table public.booking_requests
+  add constraint bookings_no_duplicate_pending
+  exclude using gist (
+    listing_id with =,
+    client_id with =,
+    daterange(requested_from, requested_to, '[]') with &&
+  )
+  where (status = 'pending');
 
 drop trigger if exists bookings_set_updated_at on public.booking_requests;
 create trigger bookings_set_updated_at
@@ -307,11 +331,21 @@ create index if not exists notifications_unread_idx on public.notifications (use
 -- 11. Disponibilité — fonction agrégée exposée au client
 --
 -- `security definer` : un client doit pouvoir savoir combien d'unités restent
--- disponibles à une date donnée SANS pouvoir lire les demandes des autres
--- utilisateurs. La fonction ne renvoie donc que des totaux.
+-- disponibles sur une période donnée SANS pouvoir lire les demandes des
+-- autres utilisateurs. La fonction ne renvoie donc que des totaux.
+--
+-- Le calcul est fait JOUR PAR JOUR sur la période demandée, puis on garde le
+-- pire jour : deux réservations acceptées sur des sous-périodes disjointes
+-- (ex. 1-5 et 10-15) ne doivent pas se cumuler pour une période qui les
+-- couvre toutes les deux (1-15) sans jamais les chevaucher elles-mêmes.
+-- Cette logique est identique à celle de `check_booking_capacity()` : les
+-- deux doivent toujours s'accorder, sous peine d'afficher un stock que
+-- l'acceptation refuserait ensuite (ou l'inverse).
 -- ---------------------------------------------------------------------------
 
-create or replace function public.listing_availability(p_listing_id uuid, p_date date)
+drop function if exists public.listing_availability(uuid, date);
+
+create or replace function public.listing_availability(p_listing_id uuid, p_from date, p_to date)
 returns table (
   total_quantity    integer,
   accepted_quantity integer,
@@ -327,12 +361,28 @@ as $$
   select
     l.quantity as total_quantity,
     coalesce((
-      select sum(b.quantity)::int from public.booking_requests b
-      where b.listing_id = l.id and b.requested_date = p_date and b.status = 'accepted'
+      select max(day_usage)::int from (
+        select coalesce(sum(b.quantity), 0) as day_usage
+        from generate_series(p_from::timestamp, p_to::timestamp, interval '1 day') as d(day)
+        left join public.booking_requests b
+          on b.listing_id = l.id
+          and b.status = 'accepted'
+          and b.requested_from <= d.day::date
+          and b.requested_to   >= d.day::date
+        group by d.day
+      ) per_day
     ), 0) as accepted_quantity,
     coalesce((
-      select sum(b.quantity)::int from public.booking_requests b
-      where b.listing_id = l.id and b.requested_date = p_date and b.status = 'pending'
+      select max(day_usage)::int from (
+        select coalesce(sum(b.quantity), 0) as day_usage
+        from generate_series(p_from::timestamp, p_to::timestamp, interval '1 day') as d(day)
+        left join public.booking_requests b
+          on b.listing_id = l.id
+          and b.status = 'pending'
+          and b.requested_from <= d.day::date
+          and b.requested_to   >= d.day::date
+        group by d.day
+      ) per_day
     ), 0) as pending_quantity,
     l.availability_status as is_active,
     l.status as listing_status
@@ -346,11 +396,17 @@ as $$
     );
 $$;
 
-revoke all on function public.listing_availability(uuid, date) from public;
-grant execute on function public.listing_availability(uuid, date) to anon, authenticated;
+revoke all on function public.listing_availability(uuid, date, date) from public;
+grant execute on function public.listing_availability(uuid, date, date) to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 12. Garde-fou serveur : on n'accepte jamais plus que le stock disponible
+--
+-- Vérifie CHAQUE JOUR de la période demandée, pas seulement son ensemble :
+-- deux réservations acceptées sur des sous-périodes disjointes ne doivent
+-- pas se cumuler à tort pour une période qui les couvre sans les chevaucher
+-- elles-mêmes. Doit rester en accord avec `listing_availability()`, qui
+-- affiche au client exactement ce que cette fonction acceptera ou non.
 -- ---------------------------------------------------------------------------
 
 create or replace function public.check_booking_capacity()
@@ -361,7 +417,7 @@ set search_path = public
 as $$
 declare
   stock integer;
-  already integer;
+  worst_day_usage integer;
 begin
   if new.status <> 'accepted' then
     return new;
@@ -369,15 +425,21 @@ begin
 
   select quantity into stock from public.listings where id = new.listing_id;
 
-  select coalesce(sum(quantity), 0) into already
-  from public.booking_requests
-  where listing_id = new.listing_id
-    and requested_date = new.requested_date
-    and status = 'accepted'
-    and id <> new.id;
+  select coalesce(max(day_usage), 0) into worst_day_usage
+  from (
+    select coalesce(sum(b.quantity), 0) as day_usage
+    from generate_series(new.requested_from::timestamp, new.requested_to::timestamp, interval '1 day') as d(day)
+    left join public.booking_requests b
+      on b.listing_id = new.listing_id
+      and b.status = 'accepted'
+      and b.id <> new.id
+      and b.requested_from <= d.day::date
+      and b.requested_to   >= d.day::date
+    group by d.day
+  ) per_day;
 
-  if new.quantity > (stock - already) then
-    raise exception 'Stock insuffisant a cette date : il reste % unite(s).', greatest(stock - already, 0)
+  if new.quantity > (stock - worst_day_usage) then
+    raise exception 'Stock insuffisant sur cette periode : il reste au maximum % unite(s) selon les jours.', greatest(stock - worst_day_usage, 0)
       using errcode = '23514';
   end if;
 

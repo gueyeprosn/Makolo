@@ -103,7 +103,14 @@ export interface BookingRequest {
   listing_id: string;
   client_id: string;
   provider_id: string;
-  requested_date: string;
+  /**
+   * Période complète pendant laquelle le matériel est chez le client (de la
+   * livraison à la reprise), pas seulement la date de l'événement — voir
+   * docs/specs/BOOKING-LIFECYCLE.md. Une location d'un seul jour a
+   * `requested_from === requested_to`.
+   */
+  requested_from: string;
+  requested_to: string;
   quantity: number;
   message: string | null;
   status: BookingStatus;

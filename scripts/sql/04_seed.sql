@@ -194,12 +194,19 @@ begin
   on conflict (user_id, listing_id) do nothing;
 
   -- Les triggers créent automatiquement les notifications correspondantes.
-  insert into public.booking_requests (listing_id, client_id, provider_id, requested_date, quantity, message, status)
+  -- Deux demandes d'un seul jour (requested_from = requested_to, le cas le
+  -- plus courant) et une demande sur trois jours pour illustrer la
+  -- réservation sur une période : livraison la veille, événement, reprise
+  -- le lendemain (voir docs/specs/BOOKING-LIFECYCLE.md).
+  insert into public.booking_requests
+    (listing_id, client_id, provider_id, requested_from, requested_to, quantity, message, status)
   values
-    (l_chaise, v_client, v_provider, current_date + 14, 120,
+    (l_chaise, v_client, v_provider, current_date + 14, current_date + 14, 120,
      'Bonjour, je souhaite louer ce matériel pour le mariage de ma sœur à Ouakam.', 'pending'),
-    (l_table,  v_client, v_provider, current_date + 30, 15,
-     'Réception de fin d''année, 150 convives.', 'pending')
+    (l_table,  v_client, v_provider, current_date + 30, current_date + 30, 15,
+     'Réception de fin d''année, 150 convives.', 'pending'),
+    (l_tente,  v_client, v_provider, current_date + 20, current_date + 22, 1,
+     'Livraison la veille et reprise le lendemain de la cérémonie, merci.', 'pending')
   on conflict do nothing;
 
   raise notice 'Jeu de demonstration MAKALO installe avec succes.';

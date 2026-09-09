@@ -131,26 +131,56 @@ describe('listingSchema', () => {
 });
 
 describe('bookingSchema', () => {
-  it('accepte une demande future', () => {
-    expect(bookingSchema.safeParse({ requested_date: tomorrow(), quantity: 5, message: '' }).success).toBe(true);
+  it('accepte une demande future sur un seul jour (from === to)', () => {
+    const d = tomorrow();
+    expect(
+      bookingSchema.safeParse({ requested_from: d, requested_to: d, quantity: 5, message: '' }).success,
+    ).toBe(true);
   });
 
   it('accepte une demande pour aujourd’hui', () => {
-    expect(bookingSchema.safeParse({ requested_date: toISODate(new Date()), quantity: 1 }).success).toBe(true);
+    const d = toISODate(new Date());
+    expect(bookingSchema.safeParse({ requested_from: d, requested_to: d, quantity: 1 }).success).toBe(true);
   });
 
-  it('refuse une date passée', () => {
-    const result = bookingSchema.safeParse({ requested_date: '2020-01-01', quantity: 1 });
+  it('accepte une période de plusieurs jours', () => {
+    const from = tomorrow();
+    const d = new Date();
+    d.setDate(d.getDate() + 4);
+    const to = toISODate(d);
+    expect(bookingSchema.safeParse({ requested_from: from, requested_to: to, quantity: 2 }).success).toBe(true);
+  });
+
+  it('refuse une date de début passée', () => {
+    const result = bookingSchema.safeParse({ requested_from: '2020-01-01', requested_to: '2020-01-02', quantity: 1 });
     expect(result.success).toBe(false);
     if (!result.success) expect(result.error.issues[0].message).toContain('ultérieure');
   });
 
-  it('exige une date', () => {
-    expect(bookingSchema.safeParse({ requested_date: '', quantity: 1 }).success).toBe(false);
+  it('refuse une date de fin antérieure à la date de début', () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 5);
+    const from = toISODate(d);
+    const before = new Date();
+    before.setDate(before.getDate() + 2);
+    const to = toISODate(before);
+    const result = bookingSchema.safeParse({ requested_from: from, requested_to: to, quantity: 1 });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].path).toEqual(['requested_to']);
+      expect(result.error.issues[0].message).toContain('postérieure');
+    }
+  });
+
+  it('exige une date de début et une date de fin', () => {
+    expect(bookingSchema.safeParse({ requested_from: '', requested_to: '', quantity: 1 }).success).toBe(false);
+    const d = tomorrow();
+    expect(bookingSchema.safeParse({ requested_from: d, requested_to: '', quantity: 1 }).success).toBe(false);
   });
 
   it('refuse une quantité inférieure à 1', () => {
-    expect(bookingSchema.safeParse({ requested_date: tomorrow(), quantity: 0 }).success).toBe(false);
+    const d = tomorrow();
+    expect(bookingSchema.safeParse({ requested_from: d, requested_to: d, quantity: 0 }).success).toBe(false);
   });
 });
 

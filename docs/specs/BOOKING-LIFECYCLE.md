@@ -1,10 +1,40 @@
 # Spécification — Cycle de vie étendu de la réservation
 
-**Statut : non implémenté.** Ce document détaille le chantier n°1 de
-`docs/ROADMAP.md` (réservation sur une période) et prépare le terrain du
-chantier n°2 (paiement). Il ne décrit rien de ce qui tourne aujourd'hui — le
-cycle réellement implémenté est dans `docs/DATABASE.md` (« Cycle de vie d'une
-demande ») et `docs/BUSINESS-RULES.md`.
+Ce document a deux parties de statuts très différents :
+
+- **La réservation sur une période (chantier n°1 de `docs/ROADMAP.md`) est
+  livrée et tourne en production** (les deux backends, RLS, tests). Elle est
+  décrite ci-dessous par souci de continuité, mais sa référence à jour est
+  `docs/DATABASE.md` (section « Réservation sur une période ») et
+  `docs/BUSINESS-RULES.md`.
+- **Le modèle cible étendu (statuts `deposit_paid`, `fulfilled`, `completed`,
+  `disputed`) reste non implémenté.** Il prépare le chantier n°2 (paiement)
+  et ne décrit rien de ce qui tourne aujourd'hui.
+
+## Réservation sur une période — livré
+
+`booking_requests` porte `requested_from` / `requested_to` (une location d'un
+seul jour a `requested_from = requested_to`). Deux garanties, tenues aux deux
+mêmes endroits côté SQL et côté démo, pour ne jamais diverger :
+
+- **Capacité** : `listing_availability()` / `check_booking_capacity()` (SQL)
+  et `bookedQuantities()` (`src/services/demo-backend.ts`) agrègent
+  `accepted`/`pending` **jour par jour** sur la période demandée et retiennent
+  le **pire jour** (`max`). Deux réservations acceptées sur des sous-périodes
+  disjointes (1-5 et 10-15) ne se cumulent jamais à tort face à une demande
+  qui les couvre sans les chevaucher elles-mêmes (1-15).
+- **Anti-doublon** : la contrainte d'exclusion GiST
+  `bookings_no_duplicate_pending` (extension `btree_gist`,
+  `daterange(requested_from, requested_to, '[]')`) refuse, au niveau base,
+  une deuxième demande `pending` du même client sur la même annonce dont la
+  période chevauche une demande déjà en attente — y compris sous concurrence,
+  ce qu'une vérification applicative seule ne garantirait pas. Le backend
+  démo reproduit ce refus par un test de chevauchement explicite
+  (`rangesOverlap()`) avant insertion.
+
+Couvert par `tests/unit/booking-overlap.test.ts` (chevauchements, périodes
+disjointes) et vérifié de bout en bout par navigateur réel ainsi que par un
+audit RLS sur PostgreSQL réel.
 
 ## Pourquoi ce document existe
 
@@ -58,9 +88,6 @@ pending ──accepte──> accepted ──acompte confirmé──> deposit_pai
 
 ## Ce qu'il ne faut pas faire
 
-- **Ne pas** introduire ces statuts avant le chantier 1 (réservation sur une
-  période). `fulfilled` n'a pas de sens tant que « la date de l'événement »
-  reste une date unique ambiguë entre livraison et reprise.
 - **Ne pas** introduire `deposit_paid` avant le chantier 2 (encaissement).
   Un statut de paiement sans paiement réel est une simulation — voir la
   Règle d'or de `CLAUDE.md`.

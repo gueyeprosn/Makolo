@@ -4,11 +4,11 @@ import type { BookingStatus } from '@/types';
 import type { CreateBookingInput } from '@/services';
 import { useAuth } from './use-auth';
 
-export function useAvailability(listingId: string | undefined, date: string | undefined) {
+export function useAvailability(listingId: string | undefined, from: string | undefined, to: string | undefined) {
   return useQuery({
-    queryKey: ['availability', listingId, date],
-    queryFn: () => api.getAvailability(listingId as string, date as string),
-    enabled: Boolean(listingId && date),
+    queryKey: ['availability', listingId, from, to],
+    queryFn: () => api.getAvailability(listingId as string, from as string, to as string),
+    enabled: Boolean(listingId && from && to),
     staleTime: 15_000,
   });
 }

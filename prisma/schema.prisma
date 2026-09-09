@@ -222,10 +222,13 @@ model BookingRequest {
   listingId     String        @map("listing_id") @db.Uuid
   clientId      String        @map("client_id") @db.Uuid
   providerId    String        @map("provider_id") @db.Uuid
-  // NOTE : une seule date aujourd'hui. Le passage à une période
-  // (requestedFrom / requestedTo) est le chantier n°1 de docs/ROADMAP.md ;
-  // il se fait par migration SQL, puis `prisma db pull`.
-  requestedDate DateTime      @map("requested_date") @db.Date
+  // Période demandée (livraison -> reprise) ; requestedFrom === requestedTo
+  // pour une location d'un seul jour. La contrainte d'exclusion GiST
+  // `bookings_no_duplicate_pending` (scripts/sql/01_schema.sql) n'a pas
+  // d'équivalent déclaratif Prisma : elle reste appliquée par Postgres
+  // uniquement. Voir docs/specs/BOOKING-LIFECYCLE.md.
+  requestedFrom DateTime      @map("requested_from") @db.Date
+  requestedTo   DateTime      @map("requested_to") @db.Date
   quantity      Int
   message       String?
   status        BookingStatus @default(pending)
@@ -240,7 +243,7 @@ model BookingRequest {
   @@index([clientId])
   @@index([providerId])
   @@index([status])
-  @@index([listingId, requestedDate, status])
+  @@index([listingId, status, requestedFrom, requestedTo])
   @@map("booking_requests")
   @@schema("public")
 }

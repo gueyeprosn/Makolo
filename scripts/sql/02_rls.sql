@@ -256,11 +256,14 @@ create policy "bookings_admin_select" on public.booking_requests
   for select to authenticated
   using (public.is_admin());
 
+-- `requested_to >= requested_from` est déjà garanti pour toute écriture par
+-- la contrainte `booking_valid_range` (01_schema.sql) : pas besoin de le
+-- revérifier ici, seule l'autorisation d'écrire est du ressort de RLS.
 create policy "bookings_insert_client" on public.booking_requests
   for insert to authenticated
   with check (
     client_id = auth.uid()
-    and requested_date >= current_date
+    and requested_from >= current_date
     and exists (
       select 1 from public.listings l
       where l.id = listing_id

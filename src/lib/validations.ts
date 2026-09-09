@@ -121,17 +121,25 @@ export type ListingValues = z.infer<typeof listingSchema>;
 /* Demande de réservation                                                      */
 /* -------------------------------------------------------------------------- */
 
-export const bookingSchema = z.object({
-  requested_date: z
-    .string()
-    .min(1, 'Veuillez sélectionner une date.')
-    .refine((value) => value >= todayISO(), { message: 'La date doit être aujourd’hui ou ultérieure.' }),
-  quantity: z.coerce
-    .number({ invalid_type_error: 'La quantité doit être un nombre.' })
-    .int('La quantité doit être un nombre entier.')
-    .min(1, 'La quantité doit être au moins de 1.'),
-  message: z.string().max(600, 'Le message ne doit pas dépasser 600 caractères.').optional().or(z.literal('')),
-});
+export const bookingSchema = z
+  .object({
+    /** Date de livraison. Pour une location d'un seul jour, égale à `requested_to`. */
+    requested_from: z
+      .string()
+      .min(1, 'Veuillez sélectionner une date de début.')
+      .refine((value) => value >= todayISO(), { message: 'La date doit être aujourd’hui ou ultérieure.' }),
+    /** Date de reprise du matériel. */
+    requested_to: z.string().min(1, 'Veuillez sélectionner une date de fin.'),
+    quantity: z.coerce
+      .number({ invalid_type_error: 'La quantité doit être un nombre.' })
+      .int('La quantité doit être un nombre entier.')
+      .min(1, 'La quantité doit être au moins de 1.'),
+    message: z.string().max(600, 'Le message ne doit pas dépasser 600 caractères.').optional().or(z.literal('')),
+  })
+  .refine((data) => data.requested_to >= data.requested_from, {
+    message: 'La date de fin doit être identique ou postérieure à la date de début.',
+    path: ['requested_to'],
+  });
 export type BookingValues = z.infer<typeof bookingSchema>;
 
 /* -------------------------------------------------------------------------- */
