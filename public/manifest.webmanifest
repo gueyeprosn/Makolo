@@ -1,0 +1,16 @@
+{
+  "name": "MAKOLO — Location de matériel événementiel",
+  "short_name": "MAKOLO",
+  "description": "Trouvez et réservez du matériel événementiel auprès de prestataires au Sénégal.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFFFFF",
+  "theme_color": "#0F2B5B",
+  "lang": "fr",
+  "icons": [
+    { "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

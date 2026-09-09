@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 217 72% 21%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 217 72% 21%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 217 72% 21%;
+
+    /* Bleu Nuit #0F2B5B */
+    --primary: 217 72% 21%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Ivoire chaud #FFF7ED */
+    --secondary: 33 100% 96%;
+    --secondary-foreground: 217 72% 21%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    /* Orange #FF7A30 */
+    --accent: 21 100% 59%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 21 100% 59%;
+
+    --radius: 0.875rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  /* Focus visible homogene et accessible sur toute l'application */
+  :focus-visible {
+    @apply outline-none ring-2 ring-orange ring-offset-2 ring-offset-background;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-bold tracking-tight text-nuit;
+    text-wrap: balance;
+  }
+}
+
+@layer components {
+  .makolo-h1 {
+    @apply text-[clamp(1.875rem,6vw,3.5rem)] leading-[1.08] font-extrabold tracking-tight text-nuit;
+  }
+  .makolo-h2 {
+    @apply text-[clamp(1.5rem,3.5vw,2.25rem)] leading-tight font-bold tracking-tight text-nuit;
+  }
+  .makolo-h3 {
+    @apply text-lg sm:text-xl font-semibold text-nuit;
+  }
+  .makolo-meta {
+    @apply text-sm text-doux;
+  }
+  .makolo-section {
+    @apply py-12 sm:py-16 lg:py-20;
+  }
+  .skeleton {
+    @apply relative overflow-hidden rounded-md bg-doux-200/70;
+  }
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0 -translate-x-full;
+    background-image: linear-gradient(90deg, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0) 100%);
+    animation: shimmer 1.6s infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Masque la scrollbar horizontale des rangees de filtres rapides */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

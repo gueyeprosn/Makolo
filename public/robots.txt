@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /prestataire/annonces
+Disallow: /prestataire/demandes
+Disallow: /profil
+Disallow: /favoris
+Disallow: /demandes
