@@ -14,6 +14,20 @@ Chaque règle indique où elle est **appliquée** (autorité) et où elle est
 | Un utilisateur ne change ni son rôle ni son statut actif lui-même | `profiles_update_own` (WITH CHECK compare à l'existant) | champ non exposé dans `ProfilePage` |
 | Un administrateur ne peut pas désactiver son propre compte | `demo-backend.ts` (`adminUpdateUser`) | bouton désactivé dans `AdminUsersPage` si `user.id === me.id` |
 
+## Vérification d'identité prestataire (CMS admin — Opérations)
+
+Distincte de la modération d'annonce : un prestataire peut publier des
+annonces sans être « vérifié » — c'est un signal de confiance affiché sur son
+profil, pas une condition de publication.
+
+| Règle | Appliquée | Reflétée |
+|---|---|---|
+| Statuts : `unverified \| rejected → pending → verified \| rejected` | `enforce_provider_verification_transition()` (trigger `security definer` sur `profiles`) | badge de statut (`AdminProvidersPage`, `ProviderDashboardPage`) |
+| Un prestataire ne peut que **demander** (`→ pending`) ; il ne peut jamais s'auto-déclarer `verified` | trigger | `requestProviderVerification()` — seul bouton exposé côté prestataire |
+| Un rejet exige un motif (`verification_note`) | trigger (`errcode 22023`) | `rejectionSchema` réutilisé dans le dialogue de rejet (`AdminProvidersPage`) |
+| `verified_at` n'est jamais accepté depuis le client, recalculé par le trigger | trigger | — |
+| Une modification de profil sans rapport (nom, ville, bio) ne touche jamais les champs de vérification | trigger (préserve les 4 colonnes si `verification_status` ne change pas) | — |
+
 ## Annonces
 
 | Règle | Appliquée | Reflétée |
@@ -92,6 +106,15 @@ jamais confiance au client.
 - Dates affichées en français long (`24 mai 2026`), stockées en `date` SQL
   (pas de fuseau horaire — voir la note sur `fromISODate()` dans `utils.ts`
   pour éviter le décalage UTC classique).
+
+## Activité estimée (GMV) — tableau de bord admin
+
+`AdminStats.gmvEstimate` (Direction) est la somme `prix affiché × quantité`
+des demandes **acceptées** — calculable honnêtement dès aujourd'hui, sans
+aucun encaissement réel. Ce n'est **pas** un chiffre d'affaires confirmé : un
+tarif « /jour » n'y est pas ajusté au nombre de jours de la période
+réservée, et aucune commission n'existe encore dans le schéma (voir
+`ROADMAP.md`). Toujours affiché avec la mention « estimation ».
 
 ## Ce que ce document ne couvre pas encore
 

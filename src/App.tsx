@@ -1,17 +1,8 @@
 import { Route, Routes } from 'react-router-dom';
-import {
-  CalendarClock,
-  FolderTree,
-  Heart,
-  LayoutDashboard,
-  Package,
-  ShieldCheck,
-  Store,
-  User as UserIcon,
-  Users,
-} from 'lucide-react';
+import { CalendarClock, Heart, LayoutDashboard, Package, Store, User as UserIcon } from 'lucide-react';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
+import { AdminLayout } from '@/components/admin/AdminLayout';
 import { ProtectedRoute, GuestRoute } from '@/routes/ProtectedRoute';
 import { ScrollToTop } from '@/routes/ScrollToTop';
 
@@ -41,6 +32,8 @@ import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import { AdminListingsPage } from '@/pages/admin/AdminListingsPage';
 import { AdminCategoriesPage } from '@/pages/admin/AdminCategoriesPage';
 import { AdminBookingsPage } from '@/pages/admin/AdminBookingsPage';
+import { AdminProvidersPage } from '@/pages/admin/AdminProvidersPage';
+import { AdminCalendarPage } from '@/pages/admin/AdminCalendarPage';
 
 const CLIENT_NAV = [
   { to: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
@@ -53,15 +46,6 @@ const PROVIDER_NAV = [
   { to: '/prestataire', label: 'Tableau de bord', icon: Store, end: true },
   { to: '/prestataire/annonces', label: 'Mes annonces', icon: Package },
   { to: '/prestataire/demandes', label: 'Demandes reçues', icon: CalendarClock },
-  { to: '/profil', label: 'Mon profil', icon: UserIcon },
-];
-
-const ADMIN_NAV = [
-  { to: '/admin', label: 'Tableau de bord', icon: ShieldCheck, end: true },
-  { to: '/admin/utilisateurs', label: 'Utilisateurs', icon: Users },
-  { to: '/admin/annonces', label: 'Annonces', icon: Package },
-  { to: '/admin/categories', label: 'Catégories', icon: FolderTree },
-  { to: '/admin/demandes', label: 'Demandes', icon: CalendarClock },
   { to: '/profil', label: 'Mon profil', icon: UserIcon },
 ];
 
@@ -115,13 +99,16 @@ export default function App() {
         </Route>
 
         {/* ------------------------------------------------ Back-office */}
+        {/* 3 niveaux : Direction (/admin), Opérations, Contenu — voir docs/USER-JOURNEYS.md */}
         <Route element={<ProtectedRoute roles={['admin']} />}>
-          <Route element={<DashboardLayout title="Administration" items={ADMIN_NAV} />}>
+          <Route element={<AdminLayout />}>
             <Route path="admin" element={<AdminDashboardPage />} />
-            <Route path="admin/utilisateurs" element={<AdminUsersPage />} />
-            <Route path="admin/annonces" element={<AdminListingsPage />} />
-            <Route path="admin/categories" element={<AdminCategoriesPage />} />
-            <Route path="admin/demandes" element={<AdminBookingsPage />} />
+            <Route path="admin/operations/prestataires" element={<AdminProvidersPage />} />
+            <Route path="admin/operations/utilisateurs" element={<AdminUsersPage />} />
+            <Route path="admin/operations/annonces" element={<AdminListingsPage />} />
+            <Route path="admin/operations/reservations" element={<AdminBookingsPage />} />
+            <Route path="admin/operations/calendrier" element={<AdminCalendarPage />} />
+            <Route path="admin/cms/categories" element={<AdminCategoriesPage />} />
           </Route>
         </Route>
       </Routes>

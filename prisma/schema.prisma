@@ -92,6 +92,20 @@ enum PaymentStatus {
   @@schema("public")
 }
 
+// Vérification d'identité prestataire — distincte de ListingStatus (qui
+// modère une annonce, pas un compte). Transition contrôlée par le trigger
+// `enforce_provider_verification_transition()` : un prestataire ne peut que
+// demander (`pending`), jamais s'auto-déclarer `verified`.
+enum ProviderVerificationStatus {
+  unverified
+  pending
+  verified
+  rejected
+
+  @@map("provider_verification_status")
+  @@schema("public")
+}
+
 enum PriceUnit {
   jour
   evenement
@@ -130,6 +144,12 @@ model Profile {
   city      String?
   bio       String?
   active    Boolean  @default(true)
+
+  verificationStatus      ProviderVerificationStatus @default(unverified) @map("verification_status")
+  verificationNote        String?                    @map("verification_note")
+  verificationRequestedAt DateTime?                  @map("verification_requested_at") @db.Timestamptz(6)
+  verifiedAt              DateTime?                  @map("verified_at") @db.Timestamptz(6)
+
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -182,6 +202,7 @@ model Listing {
   coverImage         String?       @map("cover_image")
   status             ListingStatus @default(draft)
   moderationReason   String?       @map("moderation_reason")
+  moderatedAt        DateTime?     @map("moderated_at") @db.Timestamptz(6)
   createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 

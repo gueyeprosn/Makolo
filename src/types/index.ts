@@ -30,6 +30,13 @@ export type NotificationType =
   | 'listing_published'
   | 'listing_rejected';
 
+/**
+ * Vérification d'identité prestataire — distincte de la modération d'annonce.
+ * Sans objet pour un client. Transition contrôlée en base : un prestataire
+ * ne peut que demander (`pending`), jamais s'auto-déclarer `verified`.
+ */
+export type ProviderVerificationStatus = 'unverified' | 'pending' | 'verified' | 'rejected';
+
 export interface Profile {
   id: string;
   email: string;
@@ -40,6 +47,10 @@ export interface Profile {
   city: string | null;
   bio: string | null;
   active: boolean;
+  verification_status: ProviderVerificationStatus;
+  verification_note: string | null;
+  verification_requested_at: string | null;
+  verified_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -87,6 +98,8 @@ export interface Listing {
   cover_image: string | null;
   status: ListingStatus;
   moderation_reason: string | null;
+  /** Horodatage de la dernière décision admin — voir AdminActivityEvent. */
+  moderated_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -229,6 +242,41 @@ export interface AdminStats {
   listings: number;
   pendingListings: number;
   requests: number;
+  pendingBookings: number;
   acceptedRequests: number;
   categories: number;
+  pendingVerifications: number;
+  /**
+   * Estimation d'activité (somme prix affiché × quantité des demandes
+   * acceptées) — pas un chiffre d'affaires réel : aucun encaissement n'est
+   * branché (voir docs/specs/PAYMENT-FLOW.md) et un tarif « /jour » n'est
+   * pas ajusté au nombre de jours de la période. À afficher comme une
+   * estimation, jamais comme un revenu confirmé.
+   */
+  gmvEstimate: number;
+}
+
+/**
+ * Chaque type ne figure ici que s'il a un horodatage fiable et immuable
+ * en base (pas `updated_at`, qui bouge aussi pour des raisons sans rapport —
+ * voir `moderated_at`/`verification_requested_at`/`verified_at`).
+ */
+export type AdminActivityType =
+  | 'listing_published'
+  | 'listing_rejected'
+  | 'booking_created'
+  | 'booking_accepted'
+  | 'booking_rejected'
+  | 'booking_cancelled'
+  | 'provider_registered'
+  | 'provider_verification_requested'
+  | 'provider_verified';
+
+export interface AdminActivityEvent {
+  id: string;
+  type: AdminActivityType;
+  label: string;
+  actor: string | null;
+  at: string;
+  href: string | null;
 }

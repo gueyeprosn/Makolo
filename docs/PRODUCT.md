@@ -76,7 +76,10 @@ instrumentée : elle le devient avec l'encaissement (voir `ROADMAP.md`).
   partir des demandes acceptées.
 - Favoris, demandes de réservation, notifications in-app.
 - CRUD complet des annonces avec téléversement d'images.
-- Back-office de modération.
+- Back-office à 3 niveaux (Direction / Opérations / Contenu) : modération
+  d'annonces, vérification d'identité prestataire (distincte de la
+  modération), gestion des utilisateurs et des catégories, calendrier réel
+  d'occupation du matériel, activité estimée (GMV, pas un revenu confirmé).
 
 ## Hors périmètre, volontairement
 

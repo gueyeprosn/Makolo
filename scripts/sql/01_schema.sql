@@ -35,6 +35,12 @@ begin
   if not exists (select 1 from pg_type where typname = 'payment_status') then
     create type public.payment_status as enum ('none', 'pending', 'paid', 'failed', 'refunded');
   end if;
+  -- Vérification d'identité prestataire (CMS admin, espace « Opérations »).
+  -- Distincte de la modération d'annonce : un prestataire peut publier une
+  -- annonce (modérée indépendamment) sans que son identité soit vérifiée.
+  if not exists (select 1 from pg_type where typname = 'provider_verification_status') then
+    create type public.provider_verification_status as enum ('unverified', 'pending', 'verified', 'rejected');
+  end if;
   if not exists (select 1 from pg_type where typname = 'price_unit') then
     create type public.price_unit as enum ('jour', 'evenement', 'unite', 'heure', 'semaine');
   end if;
@@ -74,14 +80,23 @@ create table if not exists public.profiles (
   city        text,
   bio         text check (bio is null or char_length(bio) <= 600),
   active      boolean not null default true,
+  -- Vérification d'identité prestataire — voir section 16 plus bas
+  -- (`enforce_provider_verification_transition`). Sans objet pour un client,
+  -- mais portée par `profiles` plutôt qu'une table séparée : c'est un
+  -- attribut du compte, pas une entité avec un cycle de vie propre.
+  verification_status public.provider_verification_status not null default 'unverified',
+  verification_note   text check (verification_note is null or char_length(verification_note) <= 500),
+  verification_requested_at timestamptz,
+  verified_at          timestamptz,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
 
-create index if not exists profiles_role_idx    on public.profiles (role);
-create index if not exists profiles_city_idx    on public.profiles (city);
-create index if not exists profiles_active_idx  on public.profiles (active);
-create index if not exists profiles_created_idx on public.profiles (created_at desc);
+create index if not exists profiles_role_idx         on public.profiles (role);
+create index if not exists profiles_city_idx         on public.profiles (city);
+create index if not exists profiles_active_idx       on public.profiles (active);
+create index if not exists profiles_created_idx      on public.profiles (created_at desc);
+create index if not exists profiles_verification_idx on public.profiles (verification_status) where role = 'provider';
 
 drop trigger if exists profiles_set_updated_at on public.profiles;
 create trigger profiles_set_updated_at
@@ -209,6 +224,11 @@ create table if not exists public.listings (
   cover_image         text,
   status              public.listing_status not null default 'draft',
   moderation_reason   text,
+  -- Horodatage de la dernière décision de modération (admin uniquement) —
+  -- distinct de `updated_at`, qui bouge aussi quand le prestataire modifie
+  -- le prix ou la description d'une annonce déjà publiée. Sert de tri
+  -- fiable pour le fil d'activité admin (`adminListActivity`).
+  moderated_at        timestamptz,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now()
 );
@@ -631,6 +651,11 @@ as $$
 begin
   -- L'administrateur modère librement.
   if public.is_admin() then
+    if new.status is distinct from old.status then
+      new.moderated_at := now();
+    else
+      new.moderated_at := old.moderated_at;
+    end if;
     return new;
   end if;
 
@@ -638,6 +663,7 @@ begin
   if new.status is not distinct from old.status then
     -- Un prestataire ne réécrit pas le motif de modération le concernant.
     new.moderation_reason := old.moderation_reason;
+    new.moderated_at := old.moderated_at;
     return new;
   end if;
 
@@ -647,6 +673,7 @@ begin
   end if;
 
   new.moderation_reason := old.moderation_reason;
+  new.moderated_at := old.moderated_at;
   return new;
 end;
 $$;
@@ -699,3 +726,68 @@ create table if not exists public.payment_events (
 
 create index if not exists payment_events_booking_idx on public.payment_events (booking_id);
 create index if not exists payment_events_received_idx on public.payment_events (received_at desc);
+
+-- ---------------------------------------------------------------------------
+-- 17. Vérification d'identité prestataire (CMS admin — Opérations)
+--
+-- Même logique que `enforce_listing_status_transition()` : la policy RLS
+-- (02_rls.sql) autorise un utilisateur à modifier SON profil ; ce trigger
+-- restreint ce qu'il a le droit d'y faire pour CE champ précis. Un
+-- prestataire peut seulement demander une vérification (-> 'pending'
+-- depuis 'unverified' ou 'rejected') ; lui seul ne peut jamais s'auto-
+-- déclarer 'verified'. Seul un administrateur peut approuver, rejeter, ou
+-- revenir en arrière — et doit alors motiver un rejet.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.enforce_provider_verification_transition()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if public.is_admin() then
+    if new.verification_status is distinct from old.verification_status then
+      if new.verification_status = 'rejected' and coalesce(new.verification_note, '') = '' then
+        raise exception 'Un rejet de vérification doit être motivé.' using errcode = '22023';
+      end if;
+      new.verified_at := case when new.verification_status = 'verified' then now() else null end;
+      if new.verification_status <> 'rejected' then
+        new.verification_note := null;
+      end if;
+      new.verification_requested_at := old.verification_requested_at;
+    else
+      new.verification_note := old.verification_note;
+      new.verified_at := old.verified_at;
+      new.verification_requested_at := old.verification_requested_at;
+    end if;
+    return new;
+  end if;
+
+  -- Statut inchangé : aucune restriction supplémentaire ici.
+  if new.verification_status is not distinct from old.verification_status then
+    new.verification_note := old.verification_note;
+    new.verified_at := old.verified_at;
+    new.verification_requested_at := old.verification_requested_at;
+    return new;
+  end if;
+
+  if old.verification_status not in ('unverified', 'rejected') or new.verification_status <> 'pending' then
+    raise exception 'Seul un administrateur peut valider ou rejeter une vérification.'
+      using errcode = '42501';
+  end if;
+
+  new.verification_note := null;
+  new.verified_at := null;
+  -- Horodatage réel de la demande — sert de tri fiable pour le fil
+  -- d'activité admin (`adminListActivity`), plutôt que `updated_at` qui
+  -- bouge à chaque modification de profil, pas seulement à ce moment précis.
+  new.verification_requested_at := now();
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_enforce_verification on public.profiles;
+create trigger profiles_enforce_verification
+  before update on public.profiles
+  for each row execute function public.enforce_provider_verification_transition();

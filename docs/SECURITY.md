@@ -58,7 +58,7 @@ la faille d'auto-publication.
 
 ## Fonctions `security definer`
 
-Quatre fonctions élèvent leurs privilèges pour un besoin précis, chacune avec
+Ces fonctions élèvent leurs privilèges pour un besoin précis, chacune avec
 `set search_path = public` (contre le détournement de recherche de schéma) :
 
 | Fonction | Pourquoi l'élévation est nécessaire |
@@ -67,9 +67,24 @@ Quatre fonctions élèvent leurs privilèges pour un besoin précis, chacune ave
 | `listing_availability()` | Un client doit connaître le stock restant sans lire les demandes des autres clients — ne renvoie que des agrégats |
 | `check_booking_capacity()` | Refuser une acceptation qui dépasserait le stock, même si la policy RLS a laissé passer l'écriture |
 | `handle_new_user()` / `enforce_*` | Écrire dans `profiles` / contrôler une transition au moment précis de l'INSERT ou l'UPDATE |
+| `enforce_provider_verification_transition()` | Empêcher un prestataire de s'auto-déclarer `verified`, tout en lui laissant demander une vérification (`→ pending`) |
 
 Aucune de ces fonctions n'expose de colonne nominative au-delà de ce que son
 appelant a le droit de voir.
+
+## Vérification prestataire : même logique en deux temps que la publication
+
+Comme pour `enforce_listing_status_transition()`, une policy RLS seule sur
+`profiles` ne suffit pas à distinguer « le prestataire modifie son nom » de
+« le prestataire s'auto-déclare vérifié » : les deux sont un `UPDATE` sur la
+même ligne. `enforce_provider_verification_transition()` impose donc la
+machine à états au niveau trigger, pas seulement au niveau policy : un
+compte non-admin ne peut transitionner que `unverified|rejected → pending`
+(toute autre valeur cible lève `errcode 42501`), et un rejet admin sans motif
+lève `errcode 22023`. Vérifié par 8 scénarios sur PostgreSQL réel (voir
+checklist ci-dessous), y compris la non-régression : modifier un champ sans
+rapport (ville, bio) sur un profil `pending` ne touche pas
+`verification_status`.
 
 ## Confidentialité des coordonnées
 
@@ -187,3 +202,14 @@ vient toujours d'un endroit que l'utilisateur ne contrôle pas.
    - `service_role` → deux insertions dans `payment_events` avec le même
      `(provider, provider_event_id)` → la seconde est rejetée par la
      contrainte `payment_events_idempotent`.
+   - prestataire → `verification_status = 'verified'` sur son propre profil
+     → refusé (`errcode 42501`), seul `unverified|rejected → pending` est
+     autorisé ;
+   - admin → `verification_status = 'rejected'` sans `verification_note` →
+     refusé (`errcode 22023`) ; avec motif → autorisé, `verified_at` remis à
+     `null` ;
+   - admin → `verification_status = 'verified'` → autorisé, `verified_at`
+     posé par le trigger (jamais accepté tel quel depuis le client) ;
+   - prestataire ou admin → modification d'un champ sans rapport (ville,
+     bio, nom) sur un profil `pending`/`verified`/`rejected` → les 4 colonnes
+     de vérification restent inchangées.
